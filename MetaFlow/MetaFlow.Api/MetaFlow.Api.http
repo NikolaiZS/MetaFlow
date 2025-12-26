@@ -1,0 +1,6 @@
+@MetaFlow.Api_HostAddress = http://localhost:5183
+
+GET {{MetaFlow.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
