@@ -1,26 +1,34 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Supabase.Postgrest.Attributes;
 using MetaFlow.Domain.Common;
-using MetaFlow.Domain.Entities;
+using System.Text.Json.Serialization;
 
-namespace MetaFlow.Domain.Entities
+namespace MetaFlow.Domain.Entities;
+
+[Table("users")]
+public class User : BaseEntity
 {
-    public class User : BaseEntity
-    {
-        public string Email { get; set; } = string.Empty;
-        public string Username { get; set; } = string.Empty;
-        public string? FullName { get; set; }
-        public string? AvatarUrl { get; set; }
-        public string? PasswordHash { get; set; }
-        public bool EmailVerified { get; set; }
-        public string Preferences { get; set; } = "{}";
-        public DateTime? LastLoginAt { get; set; }
+    [Column("email")]
+    public string Email { get; set; } = string.Empty;
 
-        public ICollection<Board> OwnedBoards { get; set; } = new List<Board>();
-        public ICollection<BoardMember> BoardMemberships { get; set; } = new List<BoardMember>();
+    [Column("username")]
+    public string Username { get; set; } = string.Empty;
 
-    }
+    [Column("full_name")]
+    public string? FullName { get; set; }
+
+    [Column("avatar_url")]
+    public string? AvatarUrl { get; set; }
+
+    [Column("password_hash")]
+    public string? PasswordHash { get; set; }
+
+    [Column("email_verified")]
+    public bool EmailVerified { get; set; }
+
+    [Column("preferences")]
+    public string Preferences { get; set; } = "{}";
+
+    [Column("last_login_at")]
+    public DateTime? LastLoginAt { get; set; }
+
 }

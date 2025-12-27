@@ -1,22 +1,25 @@
-﻿using MetaFlow.Domain.Common;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Supabase.Postgrest.Attributes;
+using MetaFlow.Domain.Common;
+using System.Text.Json.Serialization;
 
-namespace MetaFlow.Domain.Entities
+namespace MetaFlow.Domain.Entities;
+
+[Table("tags")]
+public class Tag : BaseEntity
 {
-    public class Tag : BaseEntity
-    {
-        public Guid BoardId { get; set; }
-        public string Name { get; set; } = string.Empty;
-        public string Color { get; set; } = "#808080";
-        public string? Description { get; set; }
-        public int UsageCount { get; set; }
+    [Column("board_id")]
+    public Guid BoardId { get; set; }
 
-        public Board Board { get; set; } = null!;
-        public ICollection<CardTag> CardTags { get; set; } = new List<CardTag>();
-    }
+    [Column("name")]
+    public string Name { get; set; } = string.Empty;
+
+    [Column("color")]
+    public string Color { get; set; } = "#808080";
+
+    [Column("description")]
+    public string? Description { get; set; }
+
+    [Column("usage_count")]
+    public int UsageCount { get; set; }
 
 }

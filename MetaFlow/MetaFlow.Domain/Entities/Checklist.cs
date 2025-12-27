@@ -1,20 +1,19 @@
-﻿using MetaFlow.Domain.Common;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Supabase.Postgrest.Attributes;
+using MetaFlow.Domain.Common;
+using System.Text.Json.Serialization;
 
-namespace MetaFlow.Domain.Entities
+namespace MetaFlow.Domain.Entities;
+
+[Table("checklists")]
+public class Checklist : BaseEntity
 {
-    public class Checklist : BaseEntity
-    {
-        public Guid CardId { get; set; }
-        public string Title { get; set; } = string.Empty;
-        public int Position { get; set; }
+    [Column("card_id")]
+    public Guid CardId { get; set; }
 
-        public Card Card { get; set; } = null!;
-        public ICollection<ChecklistItem> Items { get; set; } = new List<ChecklistItem>();
-    }
+    [Column("title")]
+    public string Title { get; set; } = string.Empty;
+
+    [Column("position")]
+    public int Position { get; set; }
 
 }

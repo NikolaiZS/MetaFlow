@@ -1,42 +1,61 @@
-﻿using MetaFlow.Domain.Common;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Supabase.Postgrest.Attributes;
+using MetaFlow.Domain.Common;
+using System.Text.Json.Serialization;
 
-namespace MetaFlow.Domain.Entities
+namespace MetaFlow.Domain.Entities;
+
+[Table("cards")]
+public class Card : BaseEntity
 {
-    public class Card : BaseEntity
-    {
-        public Guid BoardId { get; set; }
-        public Guid ColumnId { get; set; }
-        public Guid? SwimlaneId { get; set; }
-        public string Title { get; set; } = string.Empty;
-        public string? Description { get; set; }
-        public double Position { get; set; }
-        public string Priority { get; set; } = "medium";
-        public string Status { get; set; } = "active";
-        public DateTime? DueDate { get; set; }
-        public DateTime? StartDate { get; set; }
-        public DateTime? CompletedAt { get; set; }
-        public Guid CreatedById { get; set; }
-        public Guid? AssignedToId { get; set; }
-        public Guid? SprintId { get; set; }
-        public string CustomFields { get; set; } = "{}";
-        public string Metadata { get; set; } = "{}";
-        public bool IsArchived { get; set; }
+    [Column("board_id")]
+    public Guid BoardId { get; set; }
 
-        public Board Board { get; set; } = null!;
-        public Column Column { get; set; } = null!;
-        public Swimlane? Swimlane { get; set; }
-        public User CreatedBy { get; set; } = null!;
-        public User? AssignedTo { get; set; }
-        public ICollection<CardTag> CardTags { get; set; } = new List<CardTag>();
-        public ICollection<CardComment> Comments { get; set; } = new List<CardComment>();
-        public ICollection<CardAttachment> Attachments { get; set; } = new List<CardAttachment>();
-        public ICollection<Checklist> Checklists { get; set; } = new List<Checklist>();
-        public ICollection<CardHistory> History { get; set; } = new List<CardHistory>();
-    }
+    [Column("column_id")]
+    public Guid ColumnId { get; set; }
+
+    [Column("swimlane_id")]
+    public Guid? SwimlaneId { get; set; }
+
+    [Column("title")]
+    public string Title { get; set; } = string.Empty;
+
+    [Column("description")]
+    public string? Description { get; set; }
+
+    [Column("position")]
+    public double Position { get; set; }
+
+    [Column("priority")]
+    public string Priority { get; set; } = "medium";
+
+    [Column("status")]
+    public string Status { get; set; } = "active";
+
+    [Column("due_date")]
+    public DateTime? DueDate { get; set; }
+
+    [Column("start_date")]
+    public DateTime? StartDate { get; set; }
+
+    [Column("completed_at")]
+    public DateTime? CompletedAt { get; set; }
+
+    [Column("created_by_id")]
+    public Guid CreatedById { get; set; }
+
+    [Column("assigned_to_id")]
+    public Guid? AssignedToId { get; set; }
+
+    [Column("sprint_id")]
+    public Guid? SprintId { get; set; }
+
+    [Column("custom_fields")]
+    public string CustomFields { get; set; } = "{}";
+
+    [Column("metadata")]
+    public string Metadata { get; set; } = "{}";
+
+    [Column("is_archived")]
+    public bool IsArchived { get; set; }
 
 }

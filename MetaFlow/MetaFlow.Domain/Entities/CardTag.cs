@@ -1,20 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Supabase.Postgrest.Attributes;
+using Supabase.Postgrest.Models;
+using System.Text.Json.Serialization;
 
-namespace MetaFlow.Domain.Entities
+namespace MetaFlow.Domain.Entities;
+
+[Table("card_tags")]
+public class CardTag : BaseModel
 {
-    public class CardTag
-    {
-        public Guid CardId { get; set; }
-        public Guid TagId { get; set; }
-        public DateTime AddedAt { get; set; } = DateTime.UtcNow;
-        public Guid? AddedBy { get; set; }
+    [Column("card_id")]
+    public Guid CardId { get; set; }
 
-        public Card Card { get; set; } = null!;
-        public Tag Tag { get; set; } = null!;
-    }
+    [Column("tag_id")]
+    public Guid TagId { get; set; }
+
+    [Column("added_at")]
+    public DateTime AddedAt { get; set; } = DateTime.UtcNow;
+
+    [Column("added_by")]
+    public Guid? AddedBy { get; set; }
 
 }

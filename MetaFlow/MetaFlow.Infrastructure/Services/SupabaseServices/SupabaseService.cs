@@ -1,32 +1,38 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Supabase;
+﻿using Supabase;
 
-namespace MetaFlow.Infrastructure.Services.SupabaseServices
+namespace MetaFlow.Infrastructure.Services;
+
+public class SupabaseService
 {
-    public class SupabaseService
+    private readonly string _url;
+    private readonly string _key;
+    private Client? _client;
+
+    public SupabaseService(string url, string key)
     {
-        public Supabase.Client Client { get; }
-
-        public SupabaseService(string url, string serviceRoleKey)
-        {
-            var options = new SupabaseOptions
-            {
-                AutoRefreshToken = true,
-                AutoConnectRealtime = true,
-            };
-
-            Client = new Supabase.Client(url, serviceRoleKey, options);
-        }
-
-        public async Task InitializeAsync()
-        {
-            await Client.InitializeAsync();
-        }
+        _url = url;
+        _key = key;
     }
 
+    public async Task InitializeAsync()
+    {
+        var options = new SupabaseOptions
+        {
+            AutoConnectRealtime = false,
+            AutoRefreshToken = true
+        };
 
+        _client = new Client(_url, _key, options);
+        await _client.InitializeAsync();
+    }
+
+    public Client GetClient()
+    {
+        if (_client == null)
+        {
+            throw new InvalidOperationException("Supabase client is not initialized. Call InitializeAsync first.");
+        }
+
+        return _client;
+    }
 }

@@ -1,24 +1,34 @@
-﻿using MetaFlow.Domain.Common;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Supabase.Postgrest.Attributes;
+using MetaFlow.Domain.Common;
+using System.Text.Json.Serialization;
 
-namespace MetaFlow.Domain.Entities
+namespace MetaFlow.Domain.Entities;
+
+[Table("checklist_items")]
+public class ChecklistItem : BaseEntity
 {
-    public class ChecklistItem : BaseEntity
-    {
-        public Guid ChecklistId { get; set; }
-        public string Content { get; set; } = string.Empty;
-        public int Position { get; set; }
-        public bool IsCompleted { get; set; }
-        public DateTime? CompletedAt { get; set; }
-        public Guid? CompletedById { get; set; }
-        public Guid? AssignedToId { get; set; }
-        public DateTime? DueDate { get; set; }
+    [Column("checklist_id")]
+    public Guid ChecklistId { get; set; }
 
-        public Checklist Checklist { get; set; } = null!;
-    }
+    [Column("content")]
+    public string Content { get; set; } = string.Empty;
+
+    [Column("position")]
+    public int Position { get; set; }
+
+    [Column("is_completed")]
+    public bool IsCompleted { get; set; }
+
+    [Column("completed_at")]
+    public DateTime? CompletedAt { get; set; }
+
+    [Column("completed_by_id")]
+    public Guid? CompletedById { get; set; }
+
+    [Column("assigned_to_id")]
+    public Guid? AssignedToId { get; set; }
+
+    [Column("due_date")]
+    public DateTime? DueDate { get; set; }
 
 }

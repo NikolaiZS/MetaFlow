@@ -1,26 +1,34 @@
-﻿using MetaFlow.Domain.Common;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Supabase.Postgrest.Attributes;
+using MetaFlow.Domain.Common;
+using System.Text.Json.Serialization;
 
-namespace MetaFlow.Domain.Entities
+namespace MetaFlow.Domain.Entities;
+
+[Table("card_comments")]
+public class CardComment : BaseEntity
 {
-    public class CardComment : BaseEntity
-    {
-        public Guid CardId { get; set; }
-        public Guid UserId { get; set; }
-        public Guid? ParentCommentId { get; set; }
-        public string Content { get; set; } = string.Empty;
-        public string Metadata { get; set; } = "{}";
-        public bool IsEdited { get; set; }
-        public bool IsDeleted { get; set; }
-        public DateTime? DeletedAt { get; set; }
+    [Column("card_id")]
+    public Guid CardId { get; set; }
 
-        public Card Card { get; set; } = null!;
-        public User User { get; set; } = null!;
-        public CardComment? ParentComment { get; set; }
-    }
+    [Column("user_id")]
+    public Guid UserId { get; set; }
+
+    [Column("parent_comment_id")]
+    public Guid? ParentCommentId { get; set; }
+
+    [Column("content")]
+    public string Content { get; set; } = string.Empty;
+
+    [Column("metadata")]
+    public string Metadata { get; set; } = "{}";
+
+    [Column("is_edited")]
+    public bool IsEdited { get; set; }
+
+    [Column("is_deleted")]
+    public bool IsDeleted { get; set; }
+
+    [Column("deleted_at")]
+    public DateTime? DeletedAt { get; set; }
 
 }

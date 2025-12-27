@@ -9,7 +9,6 @@
   <ItemGroup>
     <Folder Include="Boards\" />
     <Folder Include="Cards\" />
-    <Folder Include="Users\" />
     <Folder Include="Common\" />
   </ItemGroup>
 

@@ -1,25 +1,34 @@
-﻿using MetaFlow.Domain.Common;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Supabase.Postgrest.Attributes;
+using MetaFlow.Domain.Common;
+using System.Text.Json.Serialization;
 
-namespace MetaFlow.Domain.Entities
+namespace MetaFlow.Domain.Entities;
+
+[Table("card_attachments")]
+public class CardAttachment : BaseEntity
 {
-    public class CardAttachment : BaseEntity
-    {
-        public Guid CardId { get; set; }
-        public string FileName { get; set; } = string.Empty;
-        public string FileUrl { get; set; } = string.Empty;
-        public long? FileSize { get; set; }
-        public string? MimeType { get; set; }
-        public string? ThumbnailUrl { get; set; }
-        public Guid UploadedById { get; set; }
-        public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
+    [Column("card_id")]
+    public Guid CardId { get; set; }
 
-        public Card Card { get; set; } = null!;
-        public User UploadedBy { get; set; } = null!;
-    }
+    [Column("file_name")]
+    public string FileName { get; set; } = string.Empty;
+
+    [Column("file_url")]
+    public string FileUrl { get; set; } = string.Empty;
+
+    [Column("file_size")]
+    public long? FileSize { get; set; }
+
+    [Column("mime_type")]
+    public string? MimeType { get; set; }
+
+    [Column("thumbnail_url")]
+    public string? ThumbnailUrl { get; set; }
+
+    [Column("uploaded_by_id")]
+    public Guid UploadedById { get; set; }
+
+    [Column("uploaded_at")]
+    public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
 
 }
