@@ -1,6 +1,6 @@
 ﻿using Supabase.Postgrest.Attributes;
 using MetaFlow.Domain.Common;
-using System.Text.Json.Serialization;
+using Newtonsoft.Json;
 
 namespace MetaFlow.Domain.Entities;
 
@@ -16,7 +16,7 @@ public class Board : BaseEntity
     [Column("methodology_preset_id")]
     public Guid MethodologyPresetId { get; set; }
 
-    [Column("custom_config")]
+    [JsonIgnore]
     public string CustomConfig { get; set; } = "{}";
 
     [Column("owner_id")]

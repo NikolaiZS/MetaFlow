@@ -1,6 +1,6 @@
 ﻿using Supabase.Postgrest.Attributes;
 using MetaFlow.Domain.Common;
-using System.Text.Json.Serialization;
+using Newtonsoft.Json;
 
 namespace MetaFlow.Domain.Entities;
 
@@ -49,13 +49,12 @@ public class Card : BaseEntity
     [Column("sprint_id")]
     public Guid? SprintId { get; set; }
 
-    [Column("custom_fields")]
-    public string CustomFields { get; set; } = "{}";
+    [JsonIgnore] 
+    public string? CustomFields { get; set; }
 
-    [Column("metadata")]
-    public string Metadata { get; set; } = "{}";
+    [JsonIgnore]
+    public string? Metadata { get; set; }
 
     [Column("is_archived")]
     public bool IsArchived { get; set; }
-
 }

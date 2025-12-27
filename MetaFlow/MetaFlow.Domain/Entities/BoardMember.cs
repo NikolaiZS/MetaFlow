@@ -1,6 +1,6 @@
 ﻿using Supabase.Postgrest.Attributes;
 using MetaFlow.Domain.Common;
-using System.Text.Json.Serialization;
+using Newtonsoft.Json;
 
 namespace MetaFlow.Domain.Entities;
 
@@ -16,13 +16,12 @@ public class BoardMember : BaseEntity
     [Column("role")]
     public string Role { get; set; } = "member";
 
-    [Column("permissions")]
-    public string Permissions { get; set; } = "{}";
+    [JsonIgnore]
+    public string? Permissions { get; set; }
 
     [Column("joined_at")]
     public DateTime JoinedAt { get; set; } = DateTime.UtcNow;
 
     [Column("invited_by")]
     public Guid? InvitedBy { get; set; }
-
 }

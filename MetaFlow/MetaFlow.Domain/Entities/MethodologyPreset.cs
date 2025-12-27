@@ -1,6 +1,6 @@
 ﻿using Supabase.Postgrest.Attributes;
 using MetaFlow.Domain.Common;
-using System.Text.Json.Serialization;
+using Newtonsoft.Json;
 
 namespace MetaFlow.Domain.Entities;
 
@@ -22,8 +22,8 @@ public class MethodologyPreset : BaseEntity
     [Column("category")]
     public string? Category { get; set; }
 
-    [Column("config")]
-    public string Config { get; set; } = "{}";
+    [JsonIgnore]
+    public string? Config { get; set; }
 
     [Column("is_system")]
     public bool IsSystem { get; set; }
@@ -33,5 +33,4 @@ public class MethodologyPreset : BaseEntity
 
     [Column("created_by")]
     public Guid? CreatedBy { get; set; }
-
 }
