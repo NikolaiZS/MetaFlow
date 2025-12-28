@@ -1,6 +1,6 @@
 ﻿using Supabase.Postgrest.Attributes;
 using MetaFlow.Domain.Common;
-using Newtonsoft.Json;
+using MetaFlow.Domain.Models;
 
 namespace MetaFlow.Domain.Entities;
 
@@ -25,8 +25,8 @@ public class User : BaseEntity
     [Column("email_verified")]
     public bool EmailVerified { get; set; }
 
-    [JsonIgnore] // ← Newtonsoft.Json
-    public string? Preferences { get; set; }
+    [Column("preferences")]
+    public UserPreferences? Preferences { get; set; } = new();
 
     [Column("last_login_at")]
     public DateTime? LastLoginAt { get; set; }

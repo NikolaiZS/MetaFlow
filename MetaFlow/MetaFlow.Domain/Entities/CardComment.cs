@@ -1,6 +1,6 @@
 ﻿using Supabase.Postgrest.Attributes;
 using MetaFlow.Domain.Common;
-using Newtonsoft.Json;
+using MetaFlow.Domain.Models;
 
 namespace MetaFlow.Domain.Entities;
 
@@ -19,8 +19,8 @@ public class CardComment : BaseEntity
     [Column("content")]
     public string Content { get; set; } = string.Empty;
 
-    [JsonIgnore]
-    public string? Metadata { get; set; }
+    [Column("metadata")]
+    public CommentMetadata Metadata { get; set; } = new();
 
     [Column("is_edited")]
     public bool IsEdited { get; set; }

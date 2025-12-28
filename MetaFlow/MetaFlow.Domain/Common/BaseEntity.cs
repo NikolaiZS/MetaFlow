@@ -11,7 +11,8 @@ namespace MetaFlow.Domain.Common
 {
     public abstract class BaseEntity : BaseModel
     {
-        [PrimaryKey("id")]
+        [PrimaryKey("id", false)]
+        [Column("id")]
         public Guid Id { get; set; } = Guid.NewGuid();
         [Column("created_at")]
         public DateTime CreatedAt { get; set; } = DateTime.Now;

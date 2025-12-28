@@ -1,6 +1,6 @@
 ﻿using Supabase.Postgrest.Attributes;
 using MetaFlow.Domain.Common;
-using Newtonsoft.Json;
+using MetaFlow.Domain.Models;
 
 namespace MetaFlow.Domain.Entities;
 
@@ -16,8 +16,8 @@ public class BoardMember : BaseEntity
     [Column("role")]
     public string Role { get; set; } = "member";
 
-    [JsonIgnore]
-    public string? Permissions { get; set; }
+    [Column("permissions")]
+    public MemberPermissions Permissions { get; set; } = new();
 
     [Column("joined_at")]
     public DateTime JoinedAt { get; set; } = DateTime.UtcNow;

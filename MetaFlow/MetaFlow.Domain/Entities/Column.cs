@@ -1,6 +1,6 @@
 ﻿using Supabase.Postgrest.Attributes;
 using MetaFlow.Domain.Common;
-using Newtonsoft.Json;
+using MetaFlow.Domain.Models;
 
 namespace MetaFlow.Domain.Entities;
 
@@ -28,8 +28,8 @@ public class Column : BaseEntity
     [Column("color")]
     public string Color { get; set; } = "#e0e0e0";
 
-    [JsonIgnore] // ← Newtonsoft.Json
-    public string? Settings { get; set; }
+    [Column("settings")]
+    public ColumnSettings Settings { get; set; } = new();
 
     [Column("is_visible")]
     public bool IsVisible { get; set; } = true;

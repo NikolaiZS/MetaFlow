@@ -1,6 +1,6 @@
 ﻿using Supabase.Postgrest.Attributes;
 using Supabase.Postgrest.Models;
-using Newtonsoft.Json;
+using MetaFlow.Domain.Models;
 
 namespace MetaFlow.Domain.Entities;
 
@@ -26,8 +26,8 @@ public class CardHistory : BaseModel
     [Column("to_column_id")]
     public Guid? ToColumnId { get; set; }
 
-    [JsonIgnore]
-    public string? Changes { get; set; }
+    [Column("changes")]
+    public HistoryChanges? Changes { get; set; }
 
     [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
