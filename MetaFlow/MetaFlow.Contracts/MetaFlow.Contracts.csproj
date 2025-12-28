@@ -7,7 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Boards\" />
     <Folder Include="Cards\" />
     <Folder Include="Common\" />
   </ItemGroup>

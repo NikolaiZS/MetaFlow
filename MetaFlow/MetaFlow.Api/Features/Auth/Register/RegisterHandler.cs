@@ -3,6 +3,7 @@ using MetaFlow.Api.Common;
 using MetaFlow.Api.Common.Abstractions;
 using MetaFlow.Contracts.Users;
 using MetaFlow.Domain.Entities;
+using MetaFlow.Domain.Models;
 using MetaFlow.Infrastructure.Services;
 
 namespace MetaFlow.Api.Features.Auth.Register;
@@ -35,6 +36,7 @@ public class RegisterHandler : IRequestHandler<RegisterCommand, Result<AuthRespo
         // Check if email already exists
         var emailCheck = await client
             .From<User>()
+            .Select("id")
             .Filter("email", Supabase.Postgrest.Constants.Operator.Equals, emailLower)
             .Get();
 
@@ -46,6 +48,7 @@ public class RegisterHandler : IRequestHandler<RegisterCommand, Result<AuthRespo
         // Check if username already exists
         var usernameCheck = await client
             .From<User>()
+            .Select("id")
             .Filter("username", Supabase.Postgrest.Constants.Operator.Equals, usernameLower)
             .Get();
 
@@ -64,14 +67,23 @@ public class RegisterHandler : IRequestHandler<RegisterCommand, Result<AuthRespo
             FullName = request.FullName,
             PasswordHash = _passwordHasher.HashPassword(request.Password),
             EmailVerified = false,
+            Preferences = new UserPreferences
+            {
+                Theme = "light",
+                Language = "en",
+                EmailNotifications = true,
+                PushNotifications = false,
+                ItemsPerPage = 20,
+                DateFormat = "YYYY-MM-DD",
+                TimeZone = "UTC"
+            },
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
 
-        // Используем Upsert вместо Insert
         var insertResponse = await client
             .From<User>()
-            .Upsert(user);
+            .Insert(user);
 
         var createdUser = insertResponse.Models.FirstOrDefault();
 

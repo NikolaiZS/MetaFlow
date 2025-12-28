@@ -1,6 +1,6 @@
 ﻿using Supabase.Postgrest.Attributes;
 using MetaFlow.Domain.Common;
-using System.Text.Json.Serialization;
+using MetaFlow.Domain.Models;
 
 namespace MetaFlow.Domain.Entities;
 
@@ -20,7 +20,7 @@ public class CardComment : BaseEntity
     public string Content { get; set; } = string.Empty;
 
     [Column("metadata")]
-    public string Metadata { get; set; } = "{}";
+    public CommentMetadata Metadata { get; set; } = new();
 
     [Column("is_edited")]
     public bool IsEdited { get; set; }
@@ -30,5 +30,4 @@ public class CardComment : BaseEntity
 
     [Column("deleted_at")]
     public DateTime? DeletedAt { get; set; }
-
 }

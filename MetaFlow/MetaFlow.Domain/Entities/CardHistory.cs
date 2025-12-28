@@ -1,6 +1,6 @@
 ﻿using Supabase.Postgrest.Attributes;
 using Supabase.Postgrest.Models;
-using System.Text.Json.Serialization;
+using MetaFlow.Domain.Models;
 
 namespace MetaFlow.Domain.Entities;
 
@@ -8,6 +8,7 @@ namespace MetaFlow.Domain.Entities;
 public class CardHistory : BaseModel
 {
     [PrimaryKey("id", false)]
+    [Column("id")]
     public Guid Id { get; set; } = Guid.NewGuid();
 
     [Column("card_id")]
@@ -26,9 +27,8 @@ public class CardHistory : BaseModel
     public Guid? ToColumnId { get; set; }
 
     [Column("changes")]
-    public string? Changes { get; set; }
+    public HistoryChanges? Changes { get; set; }
 
     [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
 }
