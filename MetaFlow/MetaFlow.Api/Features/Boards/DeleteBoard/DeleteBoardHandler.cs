@@ -1,5 +1,5 @@
 ﻿using MediatR;
-using MetaFlow.Api.Common;
+using MetaFlow.Api.Common.Abstractions;
 using MetaFlow.Domain.Entities;
 using MetaFlow.Infrastructure.Services;
 

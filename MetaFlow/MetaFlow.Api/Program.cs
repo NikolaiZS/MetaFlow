@@ -36,7 +36,6 @@ builder.Services.AddSwaggerGen(c =>
 
 builder.Services.AddApplicationServices(builder.Configuration);
 
-// Supabase
 builder.Services.AddSingleton<SupabaseService>(sp =>
 {
     var config = sp.GetRequiredService<IConfiguration>();
@@ -58,7 +57,6 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Initialize Supabase
 try
 {
     var supabase = app.Services.GetRequiredService<SupabaseService>();

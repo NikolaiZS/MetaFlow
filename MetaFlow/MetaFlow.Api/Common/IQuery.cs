@@ -1,4 +1,5 @@
 ﻿using MediatR;
+using MetaFlow.Api.Common.Abstractions;
 
 namespace MetaFlow.Api.Common
 {
