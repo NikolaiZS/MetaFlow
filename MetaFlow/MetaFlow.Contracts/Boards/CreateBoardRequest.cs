@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace MetaFlow.Contracts.Boards
+﻿namespace MetaFlow.Contracts.Boards
 {
     public record CreateBoardRequest(
     string Name,
@@ -13,5 +7,4 @@ namespace MetaFlow.Contracts.Boards
     bool IsPublic = false,
     bool IsTemplate = false
 );
-
 }

@@ -11,5 +11,4 @@ namespace MetaFlow.Api.Features.Boards.UpdateBoard
     bool? IsPublic,
     bool? IsArchived
 ) : ICommand<BoardResponse>;
-
 }

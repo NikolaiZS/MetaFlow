@@ -7,5 +7,4 @@ namespace MetaFlow.Api.Features.Auth.Login
     string EmailOrUsername,
     string Password
 ) : ICommand<AuthResponse>;
-
 }

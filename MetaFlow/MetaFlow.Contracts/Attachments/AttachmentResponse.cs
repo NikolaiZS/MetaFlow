@@ -6,7 +6,16 @@ using System.Threading.Tasks;
 
 namespace MetaFlow.Contracts.Attachments
 {
-    internal class AttachmentResponse
-    {
-    }
+    public record AttachmentResponse(
+    Guid Id,
+    Guid CardId,
+    Guid UploadedById,
+    string UploadedByUsername,
+    string FileName,
+    string FileUrl,
+    long? FileSize,
+    string? MimeType,
+    string? ThumbnailUrl,
+    DateTime UploadedAt
+    );
 }

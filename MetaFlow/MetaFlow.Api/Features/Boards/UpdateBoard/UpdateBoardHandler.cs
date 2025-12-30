@@ -82,6 +82,4 @@ namespace MetaFlow.Api.Features.Boards.UpdateBoard
             return Result.Success(response);
         }
     }
-
-
 }

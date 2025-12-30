@@ -6,5 +6,4 @@ namespace MetaFlow.Api.Features.Boards.DeleteBoard
     Guid BoardId,
     Guid UserId
 ) : ICommand<bool>;
-
 }

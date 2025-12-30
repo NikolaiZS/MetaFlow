@@ -67,6 +67,4 @@ namespace MetaFlow.Api.Features.Boards.GetBoard
             return Result.Success(response);
         }
     }
-
-
 }

@@ -14,5 +14,4 @@ namespace MetaFlow.Api.Features.Cards.CreateCard
         Guid? AssignedToId,
         Guid UserId
         ) : ICommand<CardResponse>;
-
 }

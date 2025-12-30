@@ -4,7 +4,6 @@ using MetaFlow.Api.Features.Users.GetCurrentUser;
 using MetaFlow.Contracts.Users;
 using Microsoft.AspNetCore.Authorization;
 
-
 namespace MetaFlow.Api.Features.Users
 {
     public class UsersModule : ICarterModule
@@ -29,5 +28,4 @@ namespace MetaFlow.Api.Features.Users
             .Produces(StatusCodes.Status401Unauthorized);
         }
     }
-
 }

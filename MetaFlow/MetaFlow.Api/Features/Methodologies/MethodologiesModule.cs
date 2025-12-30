@@ -25,5 +25,4 @@ namespace MetaFlow.Api.Features.Methodologies
             .Produces<List<MethodologyResponse>>(StatusCodes.Status200OK);
         }
     }
-
 }

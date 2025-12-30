@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace MetaFlow.Contracts.Methodologies
+﻿namespace MetaFlow.Contracts.Methodologies
 {
     public record MethodologyResponse(
     Guid Id,
@@ -16,5 +10,4 @@ namespace MetaFlow.Contracts.Methodologies
     bool IsSystem,
     bool IsActive
 );
-
 }

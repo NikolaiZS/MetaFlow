@@ -1,5 +1,5 @@
-﻿using MetaFlow.Contracts.Cards;
-using MetaFlow.Api.Common;
+﻿using MetaFlow.Api.Common;
+using MetaFlow.Contracts.Cards;
 
 namespace MetaFlow.Api.Features.Cards.GetCards
 {

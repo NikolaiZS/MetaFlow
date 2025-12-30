@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace MetaFlow.Contracts.Attachments;
 
-namespace MetaFlow.Contracts.Attachments
-{
-    internal class UploadAttachmentRequest
-    {
-    }
-}
+public record UploadAttachmentRequest(
+    string FileName,
+    string FileUrl,
+    long FileSize,
+    string MimeType,
+    string? ThumbnailUrl = null
+);

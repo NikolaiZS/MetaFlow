@@ -1,6 +1,9 @@
-﻿namespace MetaFlow.Api.Features.Attachments.DeleteAttachment
+﻿using MetaFlow.Api.Common.Abstractions;
+
+namespace MetaFlow.Api.Features.Attachments.DeleteAttachment
 {
-    public class DeleteAttachmentCommand
-    {
-    }
+    public record DeleteAttachmentCommand(
+    Guid AttachmentId,
+    Guid UserId
+) : ICommand<bool>;
 }

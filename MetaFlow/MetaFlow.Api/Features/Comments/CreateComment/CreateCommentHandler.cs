@@ -4,7 +4,6 @@ using MetaFlow.Contracts.Comments;
 using MetaFlow.Domain.Entities;
 using MetaFlow.Domain.Models;
 using MetaFlow.Infrastructure.Services;
-using System.Diagnostics;
 
 namespace MetaFlow.Api.Features.Comments.CreateComment
 {
@@ -29,7 +28,7 @@ namespace MetaFlow.Api.Features.Comments.CreateComment
                 .Filter("id", Supabase.Postgrest.Constants.Operator.Equals, request.CardId.ToString())
                 .Single();
 
-            if( card == null )
+            if (card == null)
             {
                 return Result.Failure<CommentResponse>("Card not found");
             }
@@ -40,7 +39,7 @@ namespace MetaFlow.Api.Features.Comments.CreateComment
                 .Filter("id", Supabase.Postgrest.Constants.Operator.Equals, card.BoardId.ToString())
                 .Single();
 
-            if ( board == null)
+            if (board == null)
             {
                 return Result.Failure<CommentResponse>("Board not found");
             }
@@ -59,59 +58,58 @@ namespace MetaFlow.Api.Features.Comments.CreateComment
                 }
             }
 
-                var user = await client
-                    .From<User>()
-                    .Select("id,username,avatar_url")
-                    .Filter("id", Supabase.Postgrest.Constants.Operator.Equals, request.UserId.ToString())
-                    .Single();
+            var user = await client
+                .From<User>()
+                .Select("id,username,avatar_url")
+                .Filter("id", Supabase.Postgrest.Constants.Operator.Equals, request.UserId.ToString())
+                .Single();
 
-                if (user == null)
-                {
-                    return Result.Failure<CommentResponse>("User not found");
-                }
+            if (user == null)
+            {
+                return Result.Failure<CommentResponse>("User not found");
+            }
 
-                var comment = new CardComment
-                {
-                    Id = Guid.NewGuid(),
-                    CardId = request.CardId,
-                    UserId = request.UserId,
-                    ParentCommentId = request.ParentCommentId,
-                    Content = request.Content,
-                    Metadata = new CommentMetadata(),
-                    IsEdited = false,
-                    IsDeleted = false,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                };
+            var comment = new CardComment
+            {
+                Id = Guid.NewGuid(),
+                CardId = request.CardId,
+                UserId = request.UserId,
+                ParentCommentId = request.ParentCommentId,
+                Content = request.Content,
+                Metadata = new CommentMetadata(),
+                IsEdited = false,
+                IsDeleted = false,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
 
-                var insertResponse = await client
-                    .From<CardComment>()
-                    .Insert(comment);
+            var insertResponse = await client
+                .From<CardComment>()
+                .Insert(comment);
 
-                var createdComment = insertResponse.Models.FirstOrDefault();
+            var createdComment = insertResponse.Models.FirstOrDefault();
 
-                if (createdComment == null)
-                {
-                    return Result.Failure<CommentResponse>("Failed to create comment");
-                }
+            if (createdComment == null)
+            {
+                return Result.Failure<CommentResponse>("Failed to create comment");
+            }
 
-                var response = new CommentResponse(
-                    createdComment.Id,
-                    createdComment.CardId,
-                    createdComment.UserId,
-                    user.Username,
-                    user.AvatarUrl,
-                    createdComment.ParentCommentId,
-                    createdComment.Content,
-                    createdComment.IsEdited,
-                    createdComment.IsDeleted,
-                    createdComment.CreatedAt,
-                    createdComment.UpdatedAt,
-                    new List<CommentResponse>()
-                    );
+            var response = new CommentResponse(
+                createdComment.Id,
+                createdComment.CardId,
+                createdComment.UserId,
+                user.Username,
+                user.AvatarUrl,
+                createdComment.ParentCommentId,
+                createdComment.Content,
+                createdComment.IsEdited,
+                createdComment.IsDeleted,
+                createdComment.CreatedAt,
+                createdComment.UpdatedAt,
+                new List<CommentResponse>()
+                );
 
-                return Result.Success( response );
-            
+            return Result.Success(response);
         }
     }
 }

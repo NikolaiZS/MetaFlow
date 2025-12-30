@@ -42,6 +42,4 @@ namespace MetaFlow.Api.Features.Methodologies.GetMethodologies
             return Result.Success(methodologies);
         }
     }
-
-
 }

@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace MetaFlow.Contracts.Comments
+﻿namespace MetaFlow.Contracts.Comments
 {
     public record UpdateCommentRequest(
         string Content

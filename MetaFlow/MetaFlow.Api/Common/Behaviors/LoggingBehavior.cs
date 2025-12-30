@@ -1,7 +1,6 @@
 ﻿using MediatR;
 using System.Diagnostics;
 
-
 namespace MetaFlow.Api.Common.Behaviors
 {
     public class LoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
@@ -48,5 +47,4 @@ namespace MetaFlow.Api.Common.Behaviors
             }
         }
     }
-
 }

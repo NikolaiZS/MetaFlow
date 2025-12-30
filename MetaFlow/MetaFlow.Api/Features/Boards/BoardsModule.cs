@@ -151,5 +151,4 @@ namespace MetaFlow.Api.Features.Boards
             .Produces(StatusCodes.Status401Unauthorized);
         }
     }
-
 }

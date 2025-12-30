@@ -21,5 +21,4 @@ namespace MetaFlow.Api.Features.Boards.CreateBoard
                 .NotEmpty().WithMessage("User ID is required");
         }
     }
-
 }

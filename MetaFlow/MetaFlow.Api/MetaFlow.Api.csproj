@@ -29,7 +29,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Features\Comments\GetComments\" />
     <Folder Include="Hubs\" />
     <Folder Include="Middleware\" />
   </ItemGroup>

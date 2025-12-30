@@ -44,6 +44,4 @@ namespace MetaFlow.Api.Features.Boards.DeleteBoard
             return Result.Success(true);
         }
     }
-
-
 }

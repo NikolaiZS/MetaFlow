@@ -33,7 +33,7 @@ namespace MetaFlow.Api.Features.Cards.CreateCard
                 return Result.Failure<CardResponse>("Board not found");
             }
 
-            if( board.OwnerId != request.UserId && !board.IsPublic)
+            if (board.OwnerId != request.UserId && !board.IsPublic)
             {
                 return Result.Failure<CardResponse>("Access denied");
             }
@@ -69,7 +69,7 @@ namespace MetaFlow.Api.Features.Cards.CreateCard
                     .Filter("id", Supabase.Postgrest.Constants.Operator.Equals, request.AssignedToId.Value.ToString())
                     .Single();
 
-                if(assignedUser == null)
+                if (assignedUser == null)
                 {
                     return Result.Failure<CardResponse>("Assigned user not found");
                 }
@@ -138,5 +138,4 @@ namespace MetaFlow.Api.Features.Cards.CreateCard
             return Result.Success(response);
         }
     }
-    
 }

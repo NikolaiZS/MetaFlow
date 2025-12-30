@@ -1,6 +1,5 @@
-﻿using Supabase.Postgrest.Attributes;
-using MetaFlow.Domain.Common;
-using System.Text.Json.Serialization;
+﻿using MetaFlow.Domain.Common;
+using Supabase.Postgrest.Attributes;
 
 namespace MetaFlow.Domain.Entities;
 
@@ -21,5 +20,4 @@ public class Tag : BaseEntity
 
     [Column("usage_count")]
     public int UsageCount { get; set; }
-
 }
