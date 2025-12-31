@@ -1,0 +1,112 @@
+@page "/boards"
+@inject ApiServiceClient Api
+@inject NavigationManager Navigate
+@using MetaFlow.Contracts.Boards
+@using MetaFlow.Contracts.Methodologies
+
+<h3>Boards</h3>
+
+<div class="mb-4 p-3 border">
+    <h4>Create New Board</h4>
+    <EditForm Model="@createModel" OnValidSubmit="HandleCreate">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="mb-3">
+            <label>Name</label>
+            <InputText @bind-Value="createModel.Name" class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label>Description</label>
+            <InputText @bind-Value="createModel.Description" class="form-control" />
+        </div>
+        
+        <div class="mb-3">
+             <label>Methodology</label>
+             <InputSelect @bind-Value="createModel.MethodologyPresetId" class="form-control">
+                 <option value="">Select Methodology</option>
+                 @if (methodologies != null)
+                 {
+                     foreach (var m in methodologies)
+                     {
+                         <option value="@m.Id">@m.Name</option>
+                     }
+                 }
+             </InputSelect>
+        </div>
+
+        <div class="form-check mb-3">
+            <InputCheckbox @bind-Value="createModel.IsPublic" class="form-check-input" />
+            <label class="form-check-label">Public</label>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Create Board</button>
+    </EditForm>
+</div>
+
+<hr />
+
+<h4>Your Boards</h4>
+
+@if (boards == null)
+{
+    <p>Loading...</p>
+}
+else if (!boards.Any())
+{
+    <p>No boards found.</p>
+}
+else
+{
+    <ul>
+        @foreach (var board in boards)
+        {
+            <li>
+                <a href="/boards/@board.Id">@board.Name</a> (@(board.IsPublic ? "Public" : "Private"))
+                <br />
+                <small>@board.Description</small>
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    private List<BoardListResponse>? boards;
+    private List<MethodologyResponse>? methodologies;
+    private CreateBoardViewModel createModel = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        boards = await Api.GetBoardsAsync();
+        methodologies = await Api.GetMethodologiesAsync();
+        
+        if (methodologies?.Any() == true)
+        {
+            createModel.MethodologyPresetId = methodologies.First().Id;
+        }
+    }
+
+    private async Task HandleCreate()
+    {
+        var request = new CreateBoardRequest(
+            createModel.Name,
+            createModel.Description,
+            createModel.MethodologyPresetId,
+            createModel.IsPublic,
+            false
+        );
+
+        var response = await Api.CreateBoardAsync(request);
+        if (response != null)
+        {
+            createModel = new() { MethodologyPresetId = methodologies?.FirstOrDefault()?.Id ?? Guid.Empty };
+            await LoadData();
+        }
+    }
+}
