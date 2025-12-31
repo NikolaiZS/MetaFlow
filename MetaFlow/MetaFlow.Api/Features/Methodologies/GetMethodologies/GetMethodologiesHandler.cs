@@ -1,5 +1,4 @@
 ﻿using MediatR;
-using MetaFlow.Api.Common;
 using MetaFlow.Api.Common.Abstractions;
 using MetaFlow.Contracts.Methodologies;
 using MetaFlow.Domain.Entities;
@@ -43,6 +42,4 @@ namespace MetaFlow.Api.Features.Methodologies.GetMethodologies
             return Result.Success(methodologies);
         }
     }
-
-
 }

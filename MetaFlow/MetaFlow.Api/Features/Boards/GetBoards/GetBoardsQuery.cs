@@ -7,5 +7,4 @@ namespace MetaFlow.Api.Features.Boards.GetBoards
     Guid UserId,
     bool IncludeArchived = false
 ) : IQuery<List<BoardListResponse>>;
-
 }

@@ -1,6 +1,5 @@
 ﻿using Supabase.Postgrest.Attributes;
 using Supabase.Postgrest.Models;
-using System.Text.Json.Serialization;
 
 namespace MetaFlow.Domain.Entities;
 
@@ -18,5 +17,4 @@ public class CardTag : BaseModel
 
     [Column("added_by")]
     public Guid? AddedBy { get; set; }
-
 }

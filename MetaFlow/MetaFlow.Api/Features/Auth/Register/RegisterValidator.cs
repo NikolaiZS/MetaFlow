@@ -29,5 +29,4 @@ namespace MetaFlow.Api.Features.Auth.Register
                 .When(x => !string.IsNullOrEmpty(x.FullName));
         }
     }
-
 }

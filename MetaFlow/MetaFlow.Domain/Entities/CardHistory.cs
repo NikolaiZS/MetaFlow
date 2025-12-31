@@ -1,6 +1,6 @@
-﻿using Supabase.Postgrest.Attributes;
+﻿using MetaFlow.Domain.Models;
+using Supabase.Postgrest.Attributes;
 using Supabase.Postgrest.Models;
-using MetaFlow.Domain.Models;
 
 namespace MetaFlow.Domain.Entities;
 

@@ -1,6 +1,5 @@
-﻿using Supabase.Postgrest.Attributes;
-using MetaFlow.Domain.Common;
-using System.Text.Json.Serialization;
+﻿using MetaFlow.Domain.Common;
+using Supabase.Postgrest.Attributes;
 
 namespace MetaFlow.Domain.Entities;
 
@@ -30,5 +29,4 @@ public class Swimlane : BaseEntity
 
     [Column("is_visible")]
     public bool IsVisible { get; set; } = true;
-
 }

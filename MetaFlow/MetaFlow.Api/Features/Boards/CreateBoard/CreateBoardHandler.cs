@@ -1,5 +1,4 @@
 ﻿using MediatR;
-using MetaFlow.Api.Common;
 using MetaFlow.Api.Common.Abstractions;
 using MetaFlow.Contracts.Boards;
 using MetaFlow.Domain.Entities;
@@ -23,7 +22,6 @@ public class CreateBoardHandler : IRequestHandler<CreateBoardCommand, Result<Boa
     {
         var client = _supabaseService.GetClient();
 
-        // Verify methodology exists
         var methodology = await client
             .From<MethodologyPreset>()
             .Select("id,name,display_name,description,icon,category,is_system,is_active,created_by,created_at,updated_at")
@@ -35,7 +33,6 @@ public class CreateBoardHandler : IRequestHandler<CreateBoardCommand, Result<Boa
             return Result.Failure<BoardResponse>("Methodology preset not found");
         }
 
-        // Get user info
         var user = await client
             .From<User>()
             .Select("id,email,username,full_name,avatar_url,email_verified,last_login_at,created_at,updated_at")
@@ -47,7 +44,6 @@ public class CreateBoardHandler : IRequestHandler<CreateBoardCommand, Result<Boa
             return Result.Failure<BoardResponse>("User not found");
         }
 
-        // Create board
         var board = new Board
         {
             Id = Guid.NewGuid(),

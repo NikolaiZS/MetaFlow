@@ -1,4 +1,4 @@
-﻿namespace MetaFlow.Api.Common
+﻿namespace MetaFlow.Api.Common.Abstractions
 {
     public class Result
     {
@@ -18,8 +18,11 @@
         }
 
         public static Result Success() => new(true, null);
+
         public static Result Failure(string error) => new(false, error);
+
         public static Result<T> Success<T>(T value) => new(value, true, null);
+
         public static Result<T> Failure<T>(string error) => new(default, false, error);
     }
 
@@ -32,6 +35,12 @@
         {
             Value = value;
         }
-    }
 
+        public static object CreateFailure(Type valueType, string error)
+        {
+            var resultType = typeof(Result<>).MakeGenericType(valueType);
+            var method = resultType.GetMethod("Failure");
+            return method!.Invoke(null, new object[] { error })!;
+        }
+    }
 }

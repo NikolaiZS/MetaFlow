@@ -41,5 +41,4 @@ namespace MetaFlow.Api.Common.Exceptions
             return true;
         }
     }
-
 }

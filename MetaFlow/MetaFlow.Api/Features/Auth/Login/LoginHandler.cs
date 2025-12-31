@@ -1,5 +1,4 @@
 ﻿using MediatR;
-using MetaFlow.Api.Common;
 using MetaFlow.Api.Common.Abstractions;
 using MetaFlow.Contracts.Users;
 using MetaFlow.Domain.Entities;
@@ -30,7 +29,6 @@ public class LoginHandler : IRequestHandler<LoginCommand, Result<AuthResponse>>
         var client = _supabaseService.GetClient();
         var identifier = request.EmailOrUsername.ToLower();
 
-        // Try to find by email first
         var userResponse = await client
             .From<User>()
             .Select("id,email,username,full_name,avatar_url,password_hash,email_verified,last_login_at,created_at,updated_at")
@@ -39,7 +37,6 @@ public class LoginHandler : IRequestHandler<LoginCommand, Result<AuthResponse>>
 
         var user = userResponse.Models.FirstOrDefault();
 
-        // If not found by email, try username
         if (user == null)
         {
             userResponse = await client
@@ -56,20 +53,17 @@ public class LoginHandler : IRequestHandler<LoginCommand, Result<AuthResponse>>
             return Result.Failure<AuthResponse>("Invalid credentials");
         }
 
-        // Verify password
         if (string.IsNullOrEmpty(user.PasswordHash) ||
             !_passwordHasher.VerifyPassword(request.Password, user.PasswordHash))
         {
             return Result.Failure<AuthResponse>("Invalid credentials");
         }
 
-        // Update last login
         user.LastLoginAt = DateTime.UtcNow;
         await client
             .From<User>()
             .Update(user);
 
-        // Generate JWT token
         var token = _jwtService.GenerateToken(user.Id, user.Email, user.Username);
         var expiresAt = DateTime.UtcNow.AddMinutes(1440);
 

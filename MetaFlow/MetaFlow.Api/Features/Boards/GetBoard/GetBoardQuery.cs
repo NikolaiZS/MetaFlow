@@ -7,5 +7,4 @@ namespace MetaFlow.Api.Features.Boards.GetBoard
     Guid BoardId,
     Guid UserId
 ) : IQuery<BoardResponse>;
-
 }

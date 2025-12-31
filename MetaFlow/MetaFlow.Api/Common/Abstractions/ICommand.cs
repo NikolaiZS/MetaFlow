@@ -9,5 +9,4 @@ namespace MetaFlow.Api.Common.Abstractions
     public interface ICommand<TResponse> : IRequest<Result<TResponse>>
     {
     }
-
 }

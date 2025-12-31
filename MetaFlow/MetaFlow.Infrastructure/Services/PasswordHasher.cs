@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace MetaFlow.Infrastructure.Services
+﻿namespace MetaFlow.Infrastructure.Services
 {
     public class PasswordHasher
     {
@@ -18,5 +12,4 @@ namespace MetaFlow.Infrastructure.Services
             return BCrypt.Net.BCrypt.Verify(password, passwordHash);
         }
     }
-
 }

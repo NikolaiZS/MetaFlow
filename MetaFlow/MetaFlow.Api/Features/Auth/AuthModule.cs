@@ -50,5 +50,4 @@ namespace MetaFlow.Api.Features.Auth
             .Produces(StatusCodes.Status400BadRequest);
         }
     }
-
 }

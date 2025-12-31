@@ -1,5 +1,4 @@
 ﻿using MediatR;
-using MetaFlow.Api.Common;
 using MetaFlow.Api.Common.Abstractions;
 using MetaFlow.Contracts.Users;
 using MetaFlow.Domain.Entities;
@@ -33,7 +32,6 @@ public class RegisterHandler : IRequestHandler<RegisterCommand, Result<AuthRespo
         var emailLower = request.Email.ToLower();
         var usernameLower = request.Username.ToLower();
 
-        // Check if email already exists
         var emailCheck = await client
             .From<User>()
             .Select("id")
@@ -45,7 +43,6 @@ public class RegisterHandler : IRequestHandler<RegisterCommand, Result<AuthRespo
             return Result.Failure<AuthResponse>("Email is already taken");
         }
 
-        // Check if username already exists
         var usernameCheck = await client
             .From<User>()
             .Select("id")
@@ -57,7 +54,6 @@ public class RegisterHandler : IRequestHandler<RegisterCommand, Result<AuthRespo
             return Result.Failure<AuthResponse>("Username is already taken");
         }
 
-        // Create user
         var userId = Guid.NewGuid();
         var user = new User
         {
@@ -92,7 +88,6 @@ public class RegisterHandler : IRequestHandler<RegisterCommand, Result<AuthRespo
             return Result.Failure<AuthResponse>("Failed to create user");
         }
 
-        // Generate JWT token
         var token = _jwtService.GenerateToken(createdUser.Id, createdUser.Email, createdUser.Username);
         var expiresAt = DateTime.UtcNow.AddMinutes(1440);
 
