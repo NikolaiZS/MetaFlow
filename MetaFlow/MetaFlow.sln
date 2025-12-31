@@ -23,6 +23,9 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MetaFlow.Contracts", "MetaFlow.Contracts\MetaFlow.Contracts.csproj", "{A78CDAEC-20EE-4DA5-A539-E89691C28F21}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MetaFlow.Web", "MetaFlow.Web\MetaFlow.Web.csproj", "{D8E200C4-E404-4760-A228-94AF2E379BEB}"
+	ProjectSection(ProjectDependencies) = postProject
+		{1EBD6441-841F-4C82-A4EF-7CFBDD0009AB} = {1EBD6441-841F-4C82-A4EF-7CFBDD0009AB}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

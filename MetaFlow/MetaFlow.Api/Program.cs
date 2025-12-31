@@ -1,12 +1,14 @@
 ﻿using Carter;
 using MetaFlow.Api.Common.Extensions;
 using MetaFlow.Infrastructure.Services;
+using System.Diagnostics;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
+    Debug.WriteLine("!!!Swagger started!!!!");
     c.SwaggerDoc("v1", new() { Title = "MetaFlow API", Version = "v1" });
 
     c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
