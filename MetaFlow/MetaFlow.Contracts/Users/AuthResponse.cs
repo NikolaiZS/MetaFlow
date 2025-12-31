@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace MetaFlow.Contracts.Users
+﻿namespace MetaFlow.Contracts.Users
 {
     public record AuthResponse(
     Guid UserId,
@@ -14,5 +8,4 @@ namespace MetaFlow.Contracts.Users
     string Token,
     DateTime ExpiresAt
 );
-
 }

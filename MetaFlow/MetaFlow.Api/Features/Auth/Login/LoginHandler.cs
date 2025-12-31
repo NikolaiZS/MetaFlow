@@ -1,5 +1,4 @@
 ﻿using MediatR;
-using MetaFlow.Api.Common;
 using MetaFlow.Api.Common.Abstractions;
 using MetaFlow.Contracts.Users;
 using MetaFlow.Domain.Entities;
@@ -24,45 +23,51 @@ public class LoginHandler : IRequestHandler<LoginCommand, Result<AuthResponse>>
     }
 
     public async Task<Result<AuthResponse>> Handle(
-    LoginCommand request,
-    CancellationToken cancellationToken)
+        LoginCommand request,
+        CancellationToken cancellationToken)
     {
         var client = _supabaseService.GetClient();
-        var emailOrUsername = request.EmailOrUsername.ToLower();
+        var identifier = request.EmailOrUsername.ToLower();
 
-        // Получаем все пользователи (в реальности будет 1 или 0)
-        var response = await client
+        var userResponse = await client
             .From<User>()
+            .Select("id,email,username,full_name,avatar_url,password_hash,email_verified,last_login_at,created_at,updated_at")
+            .Filter("email", Supabase.Postgrest.Constants.Operator.Equals, identifier)
             .Get();
 
-        // Фильтруем в памяти
-        var user = response.Models
-            .FirstOrDefault(u => u.Email == emailOrUsername || u.Username == emailOrUsername);
+        var user = userResponse.Models.FirstOrDefault();
+
+        if (user == null)
+        {
+            userResponse = await client
+                .From<User>()
+                .Select("id,email,username,full_name,avatar_url,password_hash,email_verified,last_login_at,created_at,updated_at")
+                .Filter("username", Supabase.Postgrest.Constants.Operator.Equals, identifier)
+                .Get();
+
+            user = userResponse.Models.FirstOrDefault();
+        }
 
         if (user == null)
         {
             return Result.Failure<AuthResponse>("Invalid credentials");
         }
 
-        // Verify password
-        if (!_passwordHasher.VerifyPassword(request.Password, user.PasswordHash!))
+        if (string.IsNullOrEmpty(user.PasswordHash) ||
+            !_passwordHasher.VerifyPassword(request.Password, user.PasswordHash))
         {
             return Result.Failure<AuthResponse>("Invalid credentials");
         }
 
-        // Update last login
         user.LastLoginAt = DateTime.UtcNow;
-        user.UpdatedAt = DateTime.UtcNow;
-
         await client
             .From<User>()
             .Update(user);
 
-        // Generate JWT token
         var token = _jwtService.GenerateToken(user.Id, user.Email, user.Username);
         var expiresAt = DateTime.UtcNow.AddMinutes(1440);
 
-        var authResponse = new AuthResponse(
+        var response = new AuthResponse(
             user.Id,
             user.Email,
             user.Username,
@@ -71,7 +76,6 @@ public class LoginHandler : IRequestHandler<LoginCommand, Result<AuthResponse>>
             expiresAt
         );
 
-        return Result.Success(authResponse);
+        return Result.Success(response);
     }
-
 }

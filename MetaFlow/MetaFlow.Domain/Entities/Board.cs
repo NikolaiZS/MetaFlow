@@ -1,6 +1,6 @@
-﻿using Supabase.Postgrest.Attributes;
-using MetaFlow.Domain.Common;
-using System.Text.Json.Serialization;
+﻿using MetaFlow.Domain.Common;
+using MetaFlow.Domain.Models;
+using Supabase.Postgrest.Attributes;
 
 namespace MetaFlow.Domain.Entities;
 
@@ -17,7 +17,7 @@ public class Board : BaseEntity
     public Guid MethodologyPresetId { get; set; }
 
     [Column("custom_config")]
-    public string CustomConfig { get; set; } = "{}";
+    public BoardConfig CustomConfig { get; set; } = new();
 
     [Column("owner_id")]
     public Guid OwnerId { get; set; }
@@ -33,5 +33,4 @@ public class Board : BaseEntity
 
     [Column("archived_at")]
     public DateTime? ArchivedAt { get; set; }
-
 }
