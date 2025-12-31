@@ -1,19 +1,10 @@
 using MetaFlow.Web.Components;
-using MetaFlow.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
-
-// Register API Client
-builder.Services.AddHttpClient<ApiServiceClient>(client =>
-{
-    client.BaseAddress = new Uri("http://localhost:5183/");
-});
-
-builder.Services.AddScoped<AppState>();
 
 var app = builder.Build();
 
