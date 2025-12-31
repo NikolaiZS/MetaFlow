@@ -1,7 +1,7 @@
 ﻿namespace MetaFlow.Contracts.Comments
 {
     public record CreateCommentRequest(
-        string Contetnt,
+        string Content,
         Guid? ParentCommentId = null
         );
 }
