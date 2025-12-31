@@ -71,18 +71,49 @@ else
     </ul>
 }
 
+@implements IDisposable
+@inject MetaFlow.Web.Services.AppState State
+
 @code {
     private List<BoardListResponse>? boards;
     private List<MethodologyResponse>? methodologies;
     private CreateBoardViewModel createModel = new();
 
-    protected override async Task OnInitializedAsync()
+
+    protected override void OnInitialized()
     {
-        await LoadData();
+        State.OnChange += OnStateChange;
+    }
+    
+    private void OnStateChange()
+    {
+        if (State.IsLoggedIn && boards == null)
+        {
+            _ = InvokeAsync(async () => 
+            {
+               await LoadData();
+               StateHasChanged();
+            });
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+         if (State.IsLoggedIn && boards == null)
+         {
+             await LoadData();
+         }
+    }
+
+    public void Dispose()
+    {
+        State.OnChange -= OnStateChange;
     }
 
     private async Task LoadData()
     {
+        StateHasChanged(); // Show loading (if we had a loading indicator)
+        
         boards = await Api.GetBoardsAsync();
         methodologies = await Api.GetMethodologiesAsync();
         

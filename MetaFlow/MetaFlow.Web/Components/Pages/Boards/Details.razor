@@ -13,9 +13,15 @@ else
 {
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h3>@board.Name</h3>
-        <button class="btn btn-secondary" @onclick="() => showCreateColumn = !showCreateColumn">
-            @(showCreateColumn ? "Cancel" : "Add Column")
-        </button>
+        <div>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="checkbox" id="showArchived" @bind="showArchived" @bind:after="LoadData">
+                <label class="form-check-label" for="showArchived">Show Archived</label>
+            </div>
+            <button class="btn btn-secondary" @onclick="() => showCreateColumn = !showCreateColumn">
+                @(showCreateColumn ? "Cancel" : "Add Column")
+            </button>
+        </div>
     </div>
 
     @if (showCreateColumn)
@@ -23,9 +29,12 @@ else
         <div class="card p-3 mb-3">
              <EditForm Model="@createColumnModel" OnValidSubmit="HandleCreateColumn">
                 <DataAnnotationsValidator />
-                <div class="input-group">
-                    <InputText @bind-Value="createColumnModel.Name" placeholder="Column Name" class="form-control" />
-                    <button type="submit" class="btn btn-primary">Add</button>
+                <div class="mb-2">
+                    <div class="input-group">
+                        <InputText @bind-Value="createColumnModel.Name" placeholder="Column Name" class="form-control" />
+                        <button type="submit" class="btn btn-primary">Add</button>
+                    </div>
+                    <ValidationMessage For="@(() => createColumnModel.Name)" class="text-danger small" />
                 </div>
             </EditForm>
         </div>
@@ -47,9 +56,12 @@ else
                             var colCards = cards.Where(c => c.ColumnId == col.Id).OrderBy(c => c.Position).ToList();
                             @foreach (var card in colCards)
                             {
-                                <div class="card mb-2" @onclick="() => OpenCard(card.Id)" style="cursor: pointer;">
+                                <div class="card mb-2 @(card.IsArchived ? "opacity-50 bg-light" : "")" @onclick="() => OpenCard(card.Id)" style="cursor: pointer;">
                                     <div class="card-body p-2">
-                                        <h6 class="card-title mb-1">@card.Title</h6>
+                                        <h6 class="card-title mb-1">
+                                            @card.Title
+                                            @if(card.IsArchived) { <span class="badge bg-warning text-dark float-end">Archived</span> }
+                                        </h6>
                                         <small class="text-muted">@card.Description</small>
                                         <div class="mt-1">
                                             <span class="badge bg-info text-dark">@card.Priority</span>
@@ -111,6 +123,9 @@ else
     private List<ColumnListResponse>? columns;
     private List<CardListResponse>? cards;
 
+    // Filter
+    private bool showArchived = false;
+
     // Column
     private bool showCreateColumn = false;
     private CreateColumnViewModel createColumnModel = new();
@@ -130,13 +145,13 @@ else
         if (board != null)
         {
             columns = await Api.GetColumnsAsync(BoardId);
-            cards = await Api.GetCardsAsync(BoardId);
+            cards = await Api.GetCardsAsync(BoardId, showArchived);
         }
     }
 
     private async Task HandleCreateColumn()
     {
-        var request = new CreateColumnRequest(createColumnModel.Name, null, "custom", 0, "default");
+        var request = new CreateColumnRequest(createColumnModel.Name, null, "standard", 10, "default");
         var response = await Api.CreateColumnAsync(BoardId, request);
         if (response != null)
         {

@@ -34,9 +34,9 @@ else
         user = await Api.GetCurrentUserAsync();
     }
 
-    private void Logout()
+    private async Task Logout()
     {
-        State.Logout();
+        await State.Logout();
         Navigate.NavigateTo("/auth/login");
     }
 }

@@ -1,4 +1,5 @@
 ﻿@inherits LayoutComponentBase
+@inject MetaFlow.Web.Services.AppState State
 
 <div class="page">
     <div class="sidebar">
@@ -21,3 +22,154 @@
     <a href="." class="reload">Reload</a>
     <span class="dismiss">🗙</span>
 </div>
+
+@inject NavigationManager NavigationManager
+
+@using System.Text.Json
+
+@if (State.IsLoggedIn)
+{
+    @if (IsDebugConsoleVisible)
+    {
+        <div class="position-fixed bottom-0 start-0 end-0 bg-dark text-white border-top border-secondary shadow-lg d-flex flex-column" style="height: 400px; z-index: 1050; transition: height 0.3s ease-in-out;">
+            <div class="d-flex justify-content-between align-items-center p-2 bg-black bg-opacity-50 border-bottom border-secondary">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="fw-bold text-info">Debug Console</span>
+                    <span class="badge bg-secondary rounded-pill">@State.ApiRequestLog.Count requests</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button class="btn btn-sm btn-outline-light" @onclick="ToggleDebugConsole">
+                        <i class="bi bi-chevron-down"></i> Hide
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" @onclick="Logout">
+                        Logout
+                    </button>
+                </div>
+            </div>
+            
+            <div class="flex-grow-1 overflow-auto p-2" style="font-family: monospace; font-size: 0.85rem;">
+                <!-- Token Debugger -->
+                <div class="mb-3">
+                     <details>
+                        <summary class="cursor-pointer text-warning">Current Token</summary>
+                        <div class="p-2 bg-black bg-opacity-25 rounded mt-1 text-break">
+                            @(State.CurrentUser?.Token ?? "No Token Found")
+                        </div>
+                    </details>
+                </div>
+
+                @foreach (var req in State.ApiRequestLog)
+                {
+                    <div class="mb-2 p-2 border border-secondary rounded hover-bg-dark-subtle">
+                        <div class="d-flex justify-content-between align-items-center cursor-pointer" @onclick="() => {}">
+                            <div>
+                                <span class="badge @(req.Method == "GET" ? "bg-primary" : req.Method == "POST" ? "bg-success" : req.Method == "DELETE" ? "bg-danger" : "bg-warning") me-2">@req.Method</span>
+                                <span class="text-break">@req.Url</span>
+                            </div>
+                            <div>
+                                <span class="badge @(req.StatusCode >= 200 && req.StatusCode < 300 ? "bg-success" : "bg-danger")">@req.StatusCode</span>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between text-muted small mt-1">
+                             <span></span>
+                            <small class="text-muted">@req.Timestamp.ToString("HH:mm:ss.fff")</small>
+                        </div>
+                        
+                        @if (req.RequestHeaders?.Any() == true)
+                        {
+                            <details class="mt-1">
+                                <summary class="cursor-pointer text-info opacity-75">Request Headers</summary>
+                                <div class="m-0 p-2 bg-black bg-opacity-25 rounded mt-1 overflow-auto">
+                                    @foreach (var header in req.RequestHeaders)
+                                    {
+                                        <div class="d-flex">
+                                            <span class="text-muted me-2">@header.Key:</span>
+                                            <span class="text-light text-break">@string.Join(", ", header.Value)</span>
+                                        </div>
+                                    }
+                                </div>
+                            </details>
+                        }
+
+                        @if (req.ResponseHeaders?.Any() == true)
+                        {
+                            <details class="mt-1">
+                                <summary class="cursor-pointer text-info opacity-75">Response Headers</summary>
+                                <div class="m-0 p-2 bg-black bg-opacity-25 rounded mt-1 overflow-auto">
+                                    @foreach (var header in req.ResponseHeaders)
+                                    {
+                                        <div class="d-flex">
+                                            <span class="text-muted me-2">@header.Key:</span>
+                                            <span class="text-light text-break">@string.Join(", ", header.Value)</span>
+                                        </div>
+                                    }
+                                </div>
+                            </details>
+                        }
+
+                        @if (!string.IsNullOrEmpty(req.Body))
+                        {
+                            <details class="mt-1">
+                                <summary class="cursor-pointer text-info opacity-75">Response Body</summary>
+                                <pre class="m-0 p-2 bg-black bg-opacity-25 rounded mt-1 text-break" style="white-space: pre-wrap; font-family: monospace;">@FormatJson(req.Body)</pre>
+                            </details>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="position-fixed bottom-0 start-0 m-3" style="z-index: 1050;">
+            <button class="btn btn-sm btn-dark border border-secondary shadow-lg d-flex align-items-center gap-2" @onclick="ToggleDebugConsole">
+                <i class="bi bi-bug"></i> Debug Console
+            </button>
+        </div>
+    }
+}
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await State.InitializeAsync();
+             State.OnChange += StateHasChanged;
+             State.OnLogChange += StateHasChanged;
+        }
+    }
+
+    public void Dispose()
+    {
+        State.OnChange -= StateHasChanged;
+        State.OnLogChange -= StateHasChanged;
+    }
+
+    private async Task Logout()
+    {
+        await State.Logout();
+        NavigationManager.NavigateTo("/auth/login", forceLoad: true);
+    }
+
+    private bool IsDebugConsoleVisible { get; set; } = false;
+
+    private void ToggleDebugConsole()
+    {
+        IsDebugConsoleVisible = !IsDebugConsoleVisible;
+    }
+
+    private string FormatJson(string json)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(json)) return string.Empty;
+            using var jDoc = JsonDocument.Parse(json);
+            return JsonSerializer.Serialize(jDoc, new JsonSerializerOptions { WriteIndented = true });
+        }
+        catch
+        {
+            return json;
+        }
+    }
+}

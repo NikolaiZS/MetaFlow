@@ -10,7 +10,11 @@ builder.Services.AddRazorComponents()
 // Register API Client
 builder.Services.AddHttpClient<ApiServiceClient>(client =>
 {
-    client.BaseAddress = new Uri("http://localhost:5183/");
+    client.BaseAddress = new Uri("https://localhost:7208/");
+})
+.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+{
+    ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
 });
 
 builder.Services.AddScoped<AppState>();

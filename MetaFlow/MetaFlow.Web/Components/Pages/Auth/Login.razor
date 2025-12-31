@@ -40,7 +40,7 @@
         
         if (response != null)
         {
-            State.SetUser(response);
+            await State.SetUser(response);
             Navigate.NavigateTo("/");
         }
         else

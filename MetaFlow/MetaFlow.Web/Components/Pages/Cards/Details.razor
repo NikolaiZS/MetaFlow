@@ -96,10 +96,18 @@ else
                 <div class="card">
                     <div class="card-header">Actions</div>
                     <div class="card-body">
-                         <p>Priority: @card.Priority</p>
-                         <p>Due: @card.DueDate</p>
-                         <button class="btn btn-danger w-100 mb-2">Archive</button>
-                         <button class="btn btn-outline-danger w-100">Delete</button>
+                          <div class="mb-3">
+                              <label class="form-label">Priority</label>
+                              <select class="form-select" @onchange="HandlePriorityChange" value="@card.Priority">
+                                  <option value="low">Low</option>
+                                  <option value="medium">Medium</option>
+                                  <option value="high">High</option>
+                                  <option value="urgent">Urgent</option>
+                              </select>
+                          </div>
+                          <p>Due: @card.DueDate</p>
+                         <button class="btn btn-danger w-100 mb-2" @onclick="HandleArchive">Archive</button>
+                         <button class="btn btn-outline-danger w-100" @onclick="HandleDelete">Delete</button>
                     </div>
                 </div>
             </div>
@@ -152,6 +160,41 @@ else
         {
             uploadModel = new();
             await LoadData();
+        }
+    }
+
+    private async Task HandleArchive()
+    {
+        if (card == null) return;
+        var success = await Api.ArchiveCardAsync(card.BoardId, CardId);
+        if (success)
+        {
+            Navigate.NavigateTo($"/boards/{card.BoardId}");
+        }
+    }
+
+    private async Task HandleDelete()
+    {
+        if (card == null) return;
+        var success = await Api.DeleteCardAsync(card.BoardId, CardId);
+        if (success)
+        {
+            Navigate.NavigateTo($"/boards/{card.BoardId}");
+        }
+    }
+
+    private async Task HandlePriorityChange(ChangeEventArgs e)
+    {
+        if (card == null) return;
+        var newPriority = e.Value?.ToString();
+        if (!string.IsNullOrEmpty(newPriority))
+        {
+            var request = new UpdateCardRequest(card.Title, card.Description, newPriority, card.Status, card.DueDate, null, card.AssignedToId);
+            var updated = await Api.UpdateCardAsync(card.BoardId, CardId, request);
+            if (updated != null)
+            {
+                await LoadData();
+            }
         }
     }
 }

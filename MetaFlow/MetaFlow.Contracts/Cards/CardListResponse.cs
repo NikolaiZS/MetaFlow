@@ -13,6 +13,7 @@
         string? AssignedToUsername,
         int CommentsCount,
         int AttachmentCount,
-        DateTime UpdatedAt
+        DateTime UpdatedAt,
+        bool IsArchived
         );
 }

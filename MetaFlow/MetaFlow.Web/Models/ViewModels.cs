@@ -34,6 +34,7 @@ public class CreateBoardViewModel
 public class CreateColumnViewModel
 {
     [Required]
+    [StringLength(100, ErrorMessage = "Column name must not exceed 100 characters")]
     public string Name { get; set; } = "";
 }
 
