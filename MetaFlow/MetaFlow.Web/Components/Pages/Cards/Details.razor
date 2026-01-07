@@ -42,6 +42,7 @@ else
                                          <br/>
                                          <small class="text-muted">@att.UploadedAt.ToShortDateString()</small>
                                      </div>
+                                     <button class="btn btn-sm btn-outline-danger" @onclick="() => HandleDeleteAttachment(att.Id)">Delete</button>
                                  </li>
                              }
                          </ul>
@@ -73,8 +74,34 @@ else
                          {
                              <div class="card mb-2">
                                  <div class="card-body p-2">
-                                     <strong>User @comm.Username</strong> <small class="text-muted">@comm.CreatedAt</small>
-                                     <p class="mb-1">@comm.Content</p>
+                                     <div class="d-flex justify-content-between">
+                                         <div>
+                                            <strong>User @comm.Username</strong> <small class="text-muted">@comm.CreatedAt</small>
+                                         </div>
+                                         <div>
+                                             @if (editingCommentId == comm.Id)
+                                             {
+                                                  <button class="btn btn-sm btn-link" @onclick="CancelEditComment">Cancel</button>
+                                             }
+                                             else
+                                             {
+                                                 <button class="btn btn-sm btn-link" @onclick="() => EditComment(comm)">Edit</button>
+                                                 <button class="btn btn-sm btn-link text-danger" @onclick="() => HandleDeleteComment(comm.Id)">Delete</button>
+                                             }
+                                         </div>
+                                     </div>
+                                     
+                                     @if (editingCommentId == comm.Id)
+                                     {
+                                         <EditForm Model="@editCommentModel" OnValidSubmit="HandleUpdateComment">
+                                             <InputTextArea @bind-Value="editCommentModel.Content" class="form-control mb-2" />
+                                             <button type="submit" class="btn btn-sm btn-primary">Save</button>
+                                         </EditForm>
+                                     }
+                                     else
+                                     {
+                                         <p class="mb-1">@comm.Content</p>
+                                     }
                                  </div>
                              </div>
                          }
@@ -106,7 +133,14 @@ else
                               </select>
                           </div>
                           <p>Due: @card.DueDate</p>
-                         <button class="btn btn-danger w-100 mb-2" @onclick="HandleArchive">Archive</button>
+                         @if (card.IsArchived)
+                         {
+                             <button class="btn btn-warning w-100 mb-2" @onclick="HandleUnarchive">Unarchive</button>
+                         }
+                         else
+                         {
+                             <button class="btn btn-danger w-100 mb-2" @onclick="HandleArchive">Archive</button>
+                         }
                          <button class="btn btn-outline-danger w-100" @onclick="HandleDelete">Delete</button>
                     </div>
                 </div>
@@ -125,6 +159,14 @@ else
 
     private CreateCommentViewModel commentModel = new();
     private UploadAttachmentViewModel uploadModel = new();
+    
+    private Guid? editingCommentId;
+    private UpdateCommentViewModel editCommentModel = new();
+
+    private class UpdateCommentViewModel
+    {
+        public string Content { get; set; } = string.Empty;
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -151,6 +193,41 @@ else
             await LoadData();
         }
     }
+    
+    private void EditComment(CommentResponse comment)
+    {
+        editingCommentId = comment.Id;
+        editCommentModel = new UpdateCommentViewModel { Content = comment.Content };
+    }
+    
+    private void CancelEditComment()
+    {
+        editingCommentId = null;
+        editCommentModel = new();
+    }
+    
+    private async Task HandleUpdateComment()
+    {
+        if (editingCommentId == null) return;
+        
+        var request = new UpdateCommentRequest(editCommentModel.Content);
+        var response = await Api.UpdateCommentAsync(CardId, editingCommentId.Value, request);
+        
+        if (response != null)
+        {
+            editingCommentId = null;
+            await LoadData();
+        }
+    }
+
+    private async Task HandleDeleteComment(Guid commentId)
+    {
+        var success = await Api.DeleteCommentAsync(CardId, commentId);
+        if (success)
+        {
+            await LoadData();
+        }
+    }
 
     private async Task HandleUpload()
     {
@@ -162,6 +239,15 @@ else
             await LoadData();
         }
     }
+    
+    private async Task HandleDeleteAttachment(Guid attachmentId)
+    {
+        var success = await Api.DeleteAttachmentAsync(CardId, attachmentId);
+        if (success)
+        {
+             await LoadData();
+        }
+    }
 
     private async Task HandleArchive()
     {
@@ -169,7 +255,17 @@ else
         var success = await Api.ArchiveCardAsync(card.BoardId, CardId);
         if (success)
         {
-            Navigate.NavigateTo($"/boards/{card.BoardId}");
+             await LoadData();
+        }
+    }
+
+    private async Task HandleUnarchive()
+    {
+        if (card == null) return;
+        var success = await Api.UnarchiveCardAsync(card.BoardId, CardId);
+        if (success)
+        {
+             await LoadData();
         }
     }
 

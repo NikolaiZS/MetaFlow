@@ -46,9 +46,20 @@ else
             @foreach (var col in columns)
             {
                 <div class="card flex-shrink-0" style="width: 300px; max-height: 100%;">
-                    <div class="card-header font-weight-bold">
-                        @col.Name
-                        <span class="badge bg-secondary float-end">@col.WipLimit</span>
+                    <div class="card-header font-weight-bold d-flex justify-content-between align-items-center position-relative">
+                        <span class="flex-grow-1 text-break pe-2">@col.Name</span>
+                        <div class="dropdown">
+                             <button class="btn btn-sm btn-link text-secondary" type="button" @onclick:stopPropagation="true" @onclick="() => ToggleColumnMenu(col.Id)">
+                                 <i class="bi bi-three-dots-vertical">...</i>
+                             </button>
+                             @if (openColumnMenuId == col.Id)
+                             {
+                                 <ul class="dropdown-menu show" style="right: 0; left: auto; display: block;">
+                                     <li><button class="dropdown-item" @onclick="() => ShowEditColumn(col)">Rename</button></li>
+                                     <li><button class="dropdown-item text-danger" @onclick="() => HandleDeleteColumn(col.Id)">Delete</button></li>
+                                 </ul>
+                             }
+                        </div>
                     </div>
                     <div class="card-body overflow-auto">
                         @if (cards != null)
@@ -84,6 +95,11 @@ else
             }
         }
     </div>
+    
+    @if (openColumnMenuId != null)
+    {
+        <div class="position-fixed top-0 start-0 w-100 h-100" style="z-index: 900;" @onclick="CloseColumnMenu"></div>
+    }
 
     @if (activeColumnIdForCard != null)
     {
@@ -113,6 +129,30 @@ else
              </div>
         </div>
     }
+
+    @if (editingColumnId != null)
+    {
+        <div class="modal d-block" style="background: rgba(0,0,0,0.5)">
+             <div class="modal-dialog">
+                  <div class="modal-content">
+                       <div class="modal-header">
+                            <h5 class="modal-title">Rename Column</h5>
+                            <button type="button" class="btn-close" @onclick="CancelEditColumn"></button>
+                       </div>
+                       <div class="modal-body">
+                           <EditForm Model="@updateColumnModel" OnValidSubmit="HandleUpdateColumn">
+                                <DataAnnotationsValidator />
+                                <div class="mb-3">
+                                    <label>Name</label>
+                                    <InputText @bind-Value="updateColumnModel.Name" class="form-control" />
+                                </div>
+                                <button type="submit" class="btn btn-primary">Save</button>
+                           </EditForm>
+                       </div>
+                  </div>
+             </div>
+        </div>
+    }
 }
 
 @code {
@@ -129,10 +169,20 @@ else
     // Column
     private bool showCreateColumn = false;
     private CreateColumnViewModel createColumnModel = new();
+    private Guid? editingColumnId;
+    private UpdateColumnViewModel updateColumnModel = new();
+    
+    // Dropdown state
+    private Guid? openColumnMenuId;
 
     // Card
     private Guid? activeColumnIdForCard;
     private CreateCardViewModel createCardModel = new();
+
+    private class UpdateColumnViewModel
+    {
+        public string Name { get; set; } = string.Empty;
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -148,6 +198,19 @@ else
             cards = await Api.GetCardsAsync(BoardId, showArchived);
         }
     }
+    
+    private void ToggleColumnMenu(Guid columnId)
+    {
+        if (openColumnMenuId == columnId)
+            openColumnMenuId = null;
+        else
+            openColumnMenuId = columnId;
+    }
+    
+    private void CloseColumnMenu()
+    {
+        openColumnMenuId = null;
+    }
 
     private async Task HandleCreateColumn()
     {
@@ -157,6 +220,47 @@ else
         {
             createColumnModel = new();
             showCreateColumn = false;
+            await LoadData();
+        }
+    }
+    
+    private async Task HandleDeleteColumn(Guid columnId)
+    {
+        CloseColumnMenu();
+        var confirmed = true;
+        if (confirmed)
+        {
+            var success = await Api.DeleteColumnAsync(BoardId, columnId);
+            if (success)
+            {
+                await LoadData();
+            }
+        }
+    }
+
+    private void ShowEditColumn(ColumnListResponse col)
+    {
+        CloseColumnMenu();
+        editingColumnId = col.Id;
+        updateColumnModel = new UpdateColumnViewModel { Name = col.Name };
+    }
+
+    private void CancelEditColumn()
+    {
+        editingColumnId = null;
+        updateColumnModel = new();
+    }
+
+    private async Task HandleUpdateColumn()
+    {
+        if (editingColumnId == null) return;
+        
+        var request = new UpdateColumnRequest(updateColumnModel.Name, null, null, null, null);
+        var response = await Api.UpdateColumnAsync(BoardId, editingColumnId.Value, request);
+        
+        if (response != null)
+        {
+            editingColumnId = null;
             await LoadData();
         }
     }

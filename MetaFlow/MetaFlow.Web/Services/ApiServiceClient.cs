@@ -86,6 +86,23 @@ public class ApiServiceClient
         }
     }
 
+    public async Task<bool> PutVoidAsync<TRequest>(string uri, TRequest request)
+    {
+        try
+        {
+            SetAuthorizationHeader();
+            var response = await _httpClient.PutAsJsonAsync(uri, request);
+            var content = await response.Content.ReadAsStringAsync();
+            _appState.UpdateLastResponse("PUT", uri, (int)response.StatusCode, content, GetHeaders(), GetResponseHeaders(response));
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+             _logger.LogError(ex, "Error putting to {Uri}", uri);
+             return false;
+        }
+    }
+
     public async Task<TResponse?> PatchAsync<TRequest, TResponse>(string uri, TRequest request)
     {
        try
@@ -161,13 +178,13 @@ public class ApiServiceClient
         DeleteAsync($"api/boards/{boardId}/columns/{columnId}");
 
     public Task<bool> ReorderColumnsAsync(Guid boardId, ReorderColumnsRequest request) =>
-        PostVoidAsync<ReorderColumnsRequest>($"api/boards/{boardId}/columns/reorder", request); // Assuming POST for PUT logic wrapper given PostVoidAsync helper
+        PutVoidAsync<ReorderColumnsRequest>($"api/boards/{boardId}/columns/reorder", request); 
         
     // Cards
-     public Task<List<CardListResponse>?> GetCardsAsync(Guid boardId, bool includeArchived = false) =>
+    public Task<List<CardListResponse>?> GetCardsAsync(Guid boardId, bool includeArchived = false) =>
         GetAsync<List<CardListResponse>>($"api/boards/{boardId}/cards?includeArchived={includeArchived.ToString().ToLower()}");
      
-     public Task<CardResponse?> CreateCardAsync(Guid boardId, CreateCardRequest request) =>
+    public Task<CardResponse?> CreateCardAsync(Guid boardId, CreateCardRequest request) =>
         PostAsync<CreateCardRequest, CardResponse>($"api/boards/{boardId}/cards", request);
 
     public Task<CardResponse?> GetCardAsync(Guid cardId) =>
@@ -175,7 +192,7 @@ public class ApiServiceClient
 
     //
     public Task<bool> ArchiveCardAsync(Guid boardId, Guid cardId) =>
-        PostVoidAsync<object?>($"api/boards/{boardId}/cards/{cardId}/archive", null);
+        PutVoidAsync<object?>($"api/boards/{boardId}/cards/{cardId}/archive", null);
 
     public Task<bool> DeleteCardAsync(Guid boardId, Guid cardId) =>
         DeleteAsync($"api/boards/{boardId}/cards/{cardId}");
@@ -184,11 +201,10 @@ public class ApiServiceClient
         PatchAsync<UpdateCardRequest, CardResponse>($"api/boards/{boardId}/cards/{cardId}", request);
 
     public Task<bool> MoveCardAsync(Guid boardId, Guid cardId, MoveCardRequest request) =>
-        PostVoidAsync<MoveCardRequest>($"api/boards/{boardId}/cards/{cardId}/move", request); // Proxy for PUT
+        PutVoidAsync<MoveCardRequest>($"api/boards/{boardId}/cards/{cardId}/move", request);
 
     public Task<bool> UnarchiveCardAsync(Guid boardId, Guid cardId) =>
-        PostVoidAsync<object?>($"api/boards/{boardId}/cards/{cardId}/unarchive", null); // Proxy for PUT
-    
+        PutVoidAsync<object?>($"api/boards/{boardId}/cards/{cardId}/unarchive", null); 
     // Comments
     public Task<List<CommentResponse>?> GetCommentsAsync(Guid cardId) =>
         GetAsync<List<CommentResponse>>($"api/cards/{cardId}/comments");
