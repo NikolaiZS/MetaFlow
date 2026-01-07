@@ -24,6 +24,14 @@ else
         </div>
     </div>
 
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @errorMessage
+            <button type="button" class="btn-close" @onclick="() => errorMessage = null" aria-label="Close"></button>
+        </div>
+    }
+
     @if (showCreateColumn)
     {
         <div class="card p-3 mb-3">
@@ -61,13 +69,17 @@ else
                              }
                         </div>
                     </div>
-                    <div class="card-body overflow-auto">
+                    <div class="card-body overflow-auto" ondragover="event.preventDefault();" @ondrop="() => HandleDrop(col.Id)">
                         @if (cards != null)
                         {
                             var colCards = cards.Where(c => c.ColumnId == col.Id).OrderBy(c => c.Position).ToList();
                             @foreach (var card in colCards)
                             {
-                                <div class="card mb-2 @(card.IsArchived ? "opacity-50 bg-light" : "")" @onclick="() => OpenCard(card.Id)" style="cursor: pointer;">
+                                <div class="card mb-2 @(card.IsArchived ? "opacity-50 bg-light" : "")" 
+                                     draggable="true" 
+                                     @ondragstart="() => HandleDragStart(card)"
+                                     @onclick="() => OpenCard(card.Id)" 
+                                     style="cursor: grab;">
                                     <div class="card-body p-2">
                                         <h6 class="card-title mb-1">
                                             @card.Title
@@ -146,6 +158,14 @@ else
                                     <label>Name</label>
                                     <InputText @bind-Value="updateColumnModel.Name" class="form-control" />
                                 </div>
+                                <div class="mb-3">
+                                    <label>WIP Limit</label>
+                                    <InputNumber @bind-Value="updateColumnModel.WipLimit" class="form-control" />
+                                </div>
+                                <div class="mb-3">
+                                    <label>Color</label>
+                                    <InputText @bind-Value="updateColumnModel.Color" class="form-control" />
+                                </div>
                                 <button type="submit" class="btn btn-primary">Save</button>
                            </EditForm>
                        </div>
@@ -182,6 +202,9 @@ else
     private class UpdateColumnViewModel
     {
         public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public int? WipLimit { get; set; }
+        public string? Color { get; set; }
     }
 
     protected override async Task OnInitializedAsync()
@@ -212,29 +235,98 @@ else
         openColumnMenuId = null;
     }
 
+    // Drag and Drop
+    private CardListResponse? draggedCard;
+    private string? errorMessage;
+
+    private void HandleDragStart(CardListResponse card)
+    {
+        draggedCard = card;
+        errorMessage = null;
+    }
+
+    private async Task HandleDrop(Guid targetColumnId)
+    {
+        if (draggedCard != null && draggedCard.ColumnId != targetColumnId)
+        {
+            var originalCard = draggedCard;
+            var newCard = draggedCard with { ColumnId = targetColumnId };
+            
+            var index = cards?.FindIndex(c => c.Id == draggedCard.Id) ?? -1;
+            if (index != -1)
+            {
+                 cards![index] = newCard;
+                 StateHasChanged();
+            }
+            
+            var request = new MoveCardRequest(targetColumnId, 0);
+            var success = await Api.MoveCardAsync(BoardId, draggedCard.Id, request);
+            
+            if (!success)
+            {
+                if (index != -1)
+                {
+                    cards![index] = originalCard;
+                    StateHasChanged();
+                }
+                errorMessage = "Failed to move card. Please try again.";
+            }
+        }
+        draggedCard = null;
+    }
+
     private async Task HandleCreateColumn()
     {
-        var request = new CreateColumnRequest(createColumnModel.Name, null, "standard", 10, "default");
+        var tempId = Guid.NewGuid();
+        var tempColumn = new ColumnListResponse(tempId, createColumnModel.Name, columns?.Count ?? 0, "standard", 10, "default", true, 0);
+        
+        columns ??= new();
+        columns.Add(tempColumn);
+        showCreateColumn = false;
+        createColumnModel = new();
+        StateHasChanged();
+
+        var request = new CreateColumnRequest(tempColumn.Name, null, "standard", 10, "default");
         var response = await Api.CreateColumnAsync(BoardId, request);
+        
         if (response != null)
         {
-            createColumnModel = new();
-            showCreateColumn = false;
-            await LoadData();
+            var index = columns.FindIndex(c => c.Id == tempId);
+            if (index != -1)
+            {
+                columns[index] = new ColumnListResponse(
+                    response.Id, 
+                    response.Name, 
+                    response.Position, 
+                    response.ColumnType, 
+                    response.WipLimit, 
+                    response.Color, 
+                    response.IsVisible, 
+                    response.CardCount);
+            }
+        }
+        else
+        {
+            columns.Remove(tempColumn);
+            errorMessage = "Failed to create column.";
         }
     }
     
     private async Task HandleDeleteColumn(Guid columnId)
     {
         CloseColumnMenu();
-        var confirmed = true;
-        if (confirmed)
+        var col = columns?.FirstOrDefault(c => c.Id == columnId);
+        if (col == null) return;
+
+        columns!.Remove(col);
+        StateHasChanged();
+
+        var success = await Api.DeleteColumnAsync(BoardId, columnId);
+        if (!success)
         {
-            var success = await Api.DeleteColumnAsync(BoardId, columnId);
-            if (success)
-            {
-                await LoadData();
-            }
+            columns.Add(col);
+            columns.Sort((a, b) => a.Position.CompareTo(b.Position));
+            errorMessage = "Failed to delete column.";
         }
     }
 
@@ -242,7 +334,12 @@ else
     {
         CloseColumnMenu();
         editingColumnId = col.Id;
-        updateColumnModel = new UpdateColumnViewModel { Name = col.Name };
+        updateColumnModel = new UpdateColumnViewModel 
+        { 
+            Name = col.Name,
+            WipLimit = col.WipLimit,
+            Color = col.Color 
+        };
     }
 
     private void CancelEditColumn()
@@ -254,14 +351,35 @@ else
     private async Task HandleUpdateColumn()
     {
         if (editingColumnId == null) return;
+        var colId = editingColumnId.Value;
+        var index = columns?.FindIndex(c => c.Id == colId) ?? -1;
+        if (index == -1) return;
+
+        var originalCol = columns![index];
+        var updatedCol = originalCol with 
+        { 
+            Name = updateColumnModel.Name,
+            WipLimit = updateColumnModel.WipLimit,
+            Color = updateColumnModel.Color ?? originalCol.Color
+        };
+
+        columns[index] = updatedCol;
+        editingColumnId = null; 
+        StateHasChanged();
         
-        var request = new UpdateColumnRequest(updateColumnModel.Name, null, null, null, null);
-        var response = await Api.UpdateColumnAsync(BoardId, editingColumnId.Value, request);
+        var request = new UpdateColumnRequest(
+            updateColumnModel.Name, 
+            updateColumnModel.Description, 
+            updateColumnModel.WipLimit, 
+            updateColumnModel.Color, 
+            null
+        );
+        var response = await Api.UpdateColumnAsync(BoardId, colId, request);
         
-        if (response != null)
+        if (response == null)
         {
-            editingColumnId = null;
-            await LoadData();
+            columns[index] = originalCol;
+            errorMessage = "Failed to update column.";
         }
     }
 
@@ -280,17 +398,55 @@ else
     {
         if (activeColumnIdForCard != null)
         {
+             var tempId = Guid.NewGuid();
+             var tempCard = new CardListResponse(
+                 tempId, 
+                 createCardModel.Title, 
+                 createCardModel.Description, 
+                 activeColumnIdForCard.Value, 
+                 9999,
+                 "medium", 
+                 "todo", 
+                 DateTime.Now, 
+                 null, null, 0, 0, DateTime.Now, false);
+
+             cards ??= new();
+             cards.Add(tempCard);
+             var columnId = activeColumnIdForCard.Value;
+             activeColumnIdForCard = null;
+             StateHasChanged();
+
              var request = new CreateCardRequest(
                  createCardModel.Title,
                  createCardModel.Description,
-                 activeColumnIdForCard.Value
+                 columnId
              );
              
              var response = await Api.CreateCardAsync(BoardId, request);
              if (response != null)
              {
-                 activeColumnIdForCard = null;
-                 await LoadData();
+                 var index = cards.FindIndex(c => c.Id == tempId);
+                 if (index != -1)
+                 {
+                     cards[index] = new CardListResponse(
+                         response.Id,
+                         response.Title,
+                         response.Description,
+                         response.ColumnId,
+                         response.Position,
+                         response.Priority,
+                         response.Status,
+                         response.DueDate,
+                         response.AssignedToId,
+                         response.AssignedToUsername,
+                         0, 0, response.UpdatedAt, response.IsArchived
+                     );
+                 }
+             }
+             else
+             {
+                 cards.Remove(tempCard);
+                 errorMessage = "Failed to create card.";
              }
         }
     }
