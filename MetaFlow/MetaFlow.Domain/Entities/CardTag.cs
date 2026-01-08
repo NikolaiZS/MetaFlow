@@ -1,10 +1,11 @@
-﻿using Supabase.Postgrest.Attributes;
-using Supabase.Postgrest.Models;
+﻿using MetaFlow.Domain.Common;
+using MetaFlow.Domain.Models;
+using Supabase.Postgrest.Attributes;
 
 namespace MetaFlow.Domain.Entities;
 
 [Table("card_tags")]
-public class CardTag : BaseModel
+public class CardTag : BaseEntity
 {
     [Column("card_id")]
     public Guid CardId { get; set; }
