@@ -6,6 +6,7 @@ using System.Diagnostics;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddScoped<PermissionService>();
 builder.Services.AddSwaggerGen(c =>
 {
     Debug.WriteLine("!!!Swagger started!!!!");
