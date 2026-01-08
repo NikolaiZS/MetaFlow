@@ -1,0 +1,480 @@
+@page "/cards/{CardId:guid}"
+@inject ApiServiceClient Api
+@inject NavigationManager Navigate
+@inject AppState State
+@using MetaFlow.Contracts.Cards
+@using MetaFlow.Contracts.Comments
+@using MetaFlow.Contracts.Attachments
+
+@if (card == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="container">
+        <div class="mb-4">
+             <h3>@card.Title</h3>
+             <small class="text-muted">In column: @card.ColumnId</small>
+        </div>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                @errorMessage
+                <button type="button" class="btn-close" @onclick="() => errorMessage = null" aria-label="Close"></button>
+            </div>
+        }
+
+        <div class="row">
+            <div class="col-md-8">
+                <!-- Description -->
+                <div class="mb-4">
+                     <h5>Description</h5>
+                     <p>@card.Description</p>
+                </div>
+                
+                <hr />
+
+                <!-- Attachments -->
+                <div class="mb-4">
+                     <h5>Attachments</h5>
+                     @if (attachments != null)
+                     {
+                         <ul class="list-group mb-3">
+                             @foreach (var att in attachments)
+                             {
+                                 <li class="list-group-item d-flex justify-content-between align-items-center">
+                                     <div>
+                                         <a href="@att.FileUrl" target="_blank">@att.FileName</a>
+                                         <br/>
+                                         <small class="text-muted">@att.UploadedAt.ToShortDateString()</small>
+                                     </div>
+                                     <button class="btn btn-sm btn-outline-danger" @onclick="() => HandleDeleteAttachment(att.Id)">Delete</button>
+                                 </li>
+                             }
+                         </ul>
+                     }
+                     
+                     <div class="card p-3">
+                         <h6>Add Attachment (Mock)</h6>
+                         <EditForm Model="@uploadModel" OnValidSubmit="HandleUpload">
+                             <DataAnnotationsValidator />
+                             <div class="mb-2">
+                                 <InputText @bind-Value="uploadModel.FileName" placeholder="File Name" class="form-control" />
+                             </div>
+                             <div class="mb-2">
+                                 <InputText @bind-Value="uploadModel.FileUrl" placeholder="File URL" class="form-control" />
+                             </div>
+                             <button type="submit" class="btn btn-sm btn-secondary">Add Attachment</button>
+                         </EditForm>
+                     </div>
+                </div>
+
+                <hr />
+                
+                <!-- Comments -->
+                <div class="mb-4">
+                     <h5>Comments</h5>
+                     @if (comments != null)
+                     {
+                         @foreach (var comm in comments)
+                         {
+                             <div class="card mb-2">
+                                 <div class="card-body p-2">
+                                     <div class="d-flex justify-content-between">
+                                         <div>
+                                            <strong>User @comm.Username</strong> <small class="text-muted">@comm.CreatedAt</small>
+                                         </div>
+                                         <div>
+                                             @if (editingCommentId == comm.Id)
+                                             {
+                                                  <button class="btn btn-sm btn-link" @onclick="CancelEditComment">Cancel</button>
+                                             }
+                                             else
+                                             {
+                                                 <button class="btn btn-sm btn-link" @onclick="() => EditComment(comm)">Edit</button>
+                                                 <button class="btn btn-sm btn-link text-danger" @onclick="() => HandleDeleteComment(comm.Id)">Delete</button>
+                                             }
+                                         </div>
+                                     </div>
+                                     
+                                     @if (editingCommentId == comm.Id)
+                                     {
+                                         <EditForm Model="@editCommentModel" OnValidSubmit="HandleUpdateComment">
+                                             <InputTextArea @bind-Value="editCommentModel.Content" class="form-control mb-2" />
+                                             <button type="submit" class="btn btn-sm btn-primary">Save</button>
+                                         </EditForm>
+                                     }
+                                     else
+                                     {
+                                         <p class="mb-1">@comm.Content</p>
+                                     }
+                                 </div>
+                             </div>
+                         }
+                     }
+                     
+                     <div class="mt-3">
+                         <EditForm Model="@commentModel" OnValidSubmit="HandleComment">
+                             <DataAnnotationsValidator />
+                             <div class="mb-2">
+                                 <InputTextArea @bind-Value="commentModel.Content" placeholder="Write a comment..." class="form-control" />
+                             </div>
+                             <button type="submit" class="btn btn-sm btn-primary">Post Comment</button>
+                         </EditForm>
+                     </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">Actions</div>
+                    <div class="card-body">
+                          <button class="btn btn-outline-primary w-100 mb-3" @onclick="ShowEditCard">Edit Details</button>
+                          <div class="mb-3">
+                              <label class="form-label">Priority</label>
+                              <select class="form-select" @onchange="HandlePriorityChange" value="@card.Priority">
+                                  <option value="low">Low</option>
+                                  <option value="medium">Medium</option>
+                                  <option value="high">High</option>
+                                  <option value="urgent">Urgent</option>
+                              </select>
+                          </div>
+                          <p>Due: @card.DueDate</p>
+                         @if (card.IsArchived)
+                         {
+                             <button class="btn btn-warning w-100 mb-2" @onclick="HandleUnarchive">Unarchive</button>
+                         }
+                         else
+                         {
+                             <button class="btn btn-danger w-100 mb-2" @onclick="HandleArchive">Archive</button>
+                         }
+                         <button class="btn btn-outline-danger w-100" @onclick="HandleDelete">Delete</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (showEditCardModal)
+    {
+        <div class="modal d-block" style="background: rgba(0,0,0,0.5)">
+             <div class="modal-dialog">
+                  <div class="modal-content">
+                       <div class="modal-header">
+                            <h5 class="modal-title">Edit Card</h5>
+                            <button type="button" class="btn-close" @onclick="CancelEditCard"></button>
+                       </div>
+                       <div class="modal-body">
+                           <EditForm Model="@updateCardModel" OnValidSubmit="HandleUpdateCardDetails">
+                                <DataAnnotationsValidator />
+                                <div class="mb-3">
+                                    <label>Title</label>
+                                    <InputText @bind-Value="updateCardModel.Title" class="form-control" />
+                                </div>
+                                <div class="mb-3">
+                                    <label>Description</label>
+                                    <InputTextArea @bind-Value="updateCardModel.Description" class="form-control" rows="5" />
+                                </div>
+                                <div class="mb-3">
+                                    <label>Due Date</label>
+                                    <InputDate @bind-Value="updateCardModel.DueDate" class="form-control" />
+                                </div>
+                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                           </EditForm>
+                       </div>
+                  </div>
+             </div>
+        </div>
+    }
+}
+
+@code {
+    [Parameter]
+    public Guid CardId { get; set; }
+
+    private CardResponse? card;
+    private List<CommentResponse>? comments;
+    private List<AttachmentResponse>? attachments;
+
+    private CreateCommentViewModel commentModel = new();
+    private UploadAttachmentViewModel uploadModel = new();
+    
+    private Guid? editingCommentId;
+    private UpdateCommentViewModel editCommentModel = new();
+    private string? errorMessage;
+
+    private class UpdateCommentViewModel
+    {
+        public string Content { get; set; } = string.Empty;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        card = await Api.GetCardAsync(CardId);
+        if (card != null)
+        {
+             comments = await Api.GetCommentsAsync(CardId);
+             attachments = await Api.GetAttachmentsAsync(CardId);
+        }
+    }
+
+    private async Task HandleComment()
+    {
+        var tempId = Guid.NewGuid();
+        var tempComment = new CommentResponse(
+            tempId, CardId, Guid.Empty, "You", null, null, commentModel.Content, false, false, DateTime.Now, DateTime.Now, new List<CommentResponse>());
+
+        comments ??= new();
+        comments.Add(tempComment);
+        commentModel = new();
+        StateHasChanged();
+
+        var request = new CreateCommentRequest(tempComment.Content, null);
+        var response = await Api.CreateCommentAsync(CardId, request);
+        
+        if (response != null)
+        {
+            var index = comments.FindIndex(c => c.Id == tempId);
+            if (index != -1)
+            {
+                comments[index] = response;
+            }
+        }
+        else
+        {
+             comments.Remove(tempComment);
+             errorMessage = "Failed to post comment.";
+        }
+    }
+    
+    private void EditComment(CommentResponse comment)
+    {
+        editingCommentId = comment.Id;
+        editCommentModel = new UpdateCommentViewModel { Content = comment.Content };
+    }
+    
+    private void CancelEditComment()
+    {
+        editingCommentId = null;
+        editCommentModel = new();
+    }
+    
+    private async Task HandleUpdateComment()
+    {
+        if (editingCommentId == null) return;
+        var commentId = editingCommentId.Value;
+        var index = comments?.FindIndex(c => c.Id == commentId) ?? -1;
+        if (index == -1) return;
+
+        var originalComment = comments![index];
+        var updatedComment = originalComment with { Content = editCommentModel.Content, IsEdited = true };
+
+        comments[index] = updatedComment;
+        editingCommentId = null;
+        StateHasChanged();
+        
+        var request = new UpdateCommentRequest(editCommentModel.Content);
+        var response = await Api.UpdateCommentAsync(CardId, commentId, request);
+        
+        if (response == null)
+        {
+            comments[index] = originalComment;
+            errorMessage = "Failed to update comment.";
+        }
+    }
+
+    private async Task HandleDeleteComment(Guid commentId)
+    {
+        var comment = comments?.FirstOrDefault(c => c.Id == commentId);
+        if (comment == null) return;
+
+        comments!.Remove(comment);
+        StateHasChanged();
+
+        var success = await Api.DeleteCommentAsync(CardId, commentId);
+        if (!success)
+        {
+            comments.Add(comment);
+            comments.Sort((a, b) => a.CreatedAt.CompareTo(b.CreatedAt));
+            errorMessage = "Failed to delete comment.";
+        }
+    }
+
+    private async Task HandleUpload()
+    {
+        var tempId = Guid.NewGuid();
+        var tempAttachment = new AttachmentResponse(
+            tempId, CardId, Guid.Empty, "You", uploadModel.FileName, uploadModel.FileUrl, 0, "text/plain", null, DateTime.Now);
+
+        attachments ??= new();
+        attachments.Add(tempAttachment);
+        uploadModel = new();
+        StateHasChanged();
+
+        var request = new UploadAttachmentRequest(tempAttachment.FileName, tempAttachment.FileUrl, 1024, "text/plain", null);
+        var response = await Api.UploadAttachmentAsync(CardId, request);
+        
+        if (response != null)
+        {
+             var index = attachments.FindIndex(a => a.Id == tempId);
+             if (index != -1)
+             {
+                 attachments[index] = response;
+             }
+        }
+        else
+        {
+            attachments.Remove(tempAttachment);
+            errorMessage = "Failed to upload attachment.";
+        }
+    }
+    
+    private async Task HandleDeleteAttachment(Guid attachmentId)
+    {
+        var attachment = attachments?.FirstOrDefault(a => a.Id == attachmentId);
+        if (attachment == null) return;
+
+        attachments!.Remove(attachment);
+        StateHasChanged();
+
+        var success = await Api.DeleteAttachmentAsync(CardId, attachmentId);
+        if (!success)
+        {
+            attachments.Add(attachment);
+            errorMessage = "Failed to delete attachment.";
+        }
+    }
+
+    private async Task HandleArchive()
+    {
+        if (card == null) return;
+        
+        card = card with { IsArchived = true };
+        
+        var success = await Api.ArchiveCardAsync(card.BoardId, CardId);
+        if (!success)
+        {
+            card = card with { IsArchived = false };
+            errorMessage = "Failed to archive card.";
+        }
+    }
+
+    private async Task HandleUnarchive()
+    {
+        if (card == null) return;
+        
+        card = card with { IsArchived = false };
+
+        var success = await Api.UnarchiveCardAsync(card.BoardId, CardId);
+        if (!success)
+        {
+            card = card with { IsArchived = true };
+            errorMessage = "Failed to unarchive card.";
+        }
+    }
+
+    private async Task HandleDelete()
+    {
+        if (card == null) return;
+        var success = await Api.DeleteCardAsync(card.BoardId, CardId);
+        if (success)
+        {
+            Navigate.NavigateTo($"/boards/{card.BoardId}");
+        }
+    }
+
+    private class UpdateCardViewModel
+    {
+        public string Title { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string? Priority { get; set; }
+        public string? Status { get; set; }
+        public DateTime? DueDate { get; set; }
+        public Guid? AssignedToId { get; set; }
+    }
+
+    private bool showEditCardModal = false;
+    private UpdateCardViewModel updateCardModel = new();
+
+    private void ShowEditCard()
+    {
+        if (card == null) return;
+        updateCardModel = new UpdateCardViewModel
+        {
+            Title = card.Title,
+            Description = card.Description,
+            Priority = card.Priority,
+            Status = card.Status,
+            DueDate = card.DueDate,
+            AssignedToId = card.AssignedToId
+        };
+        showEditCardModal = true;
+    }
+
+    private void CancelEditCard()
+    {
+        showEditCardModal = false;
+    }
+
+    private async Task HandleUpdateCardDetails()
+    {
+        if (card == null) return;
+        
+        var request = new UpdateCardRequest(
+            updateCardModel.Title,
+            updateCardModel.Description,
+            updateCardModel.Priority,
+            updateCardModel.Status,
+            updateCardModel.DueDate,
+            null,
+            updateCardModel.AssignedToId
+        );
+
+        var originalCard = card with {};
+        
+        card = card with 
+        { 
+            Title = updateCardModel.Title,
+            Description = updateCardModel.Description,
+            Priority = updateCardModel.Priority ?? card.Priority,
+            Status = updateCardModel.Status ?? card.Status,
+            DueDate = updateCardModel.DueDate,
+            AssignedToId = updateCardModel.AssignedToId
+        };
+        showEditCardModal = false;
+
+        var updated = await Api.UpdateCardAsync(card.BoardId, CardId, request);
+        if (updated == null)
+        {
+            card = originalCard;
+            errorMessage = "Failed to update card details.";
+            showEditCardModal = true;
+        }
+    }
+
+    private async Task HandlePriorityChange(ChangeEventArgs e)
+    {
+        if (card == null) return;
+        var newPriority = e.Value?.ToString();
+        if (!string.IsNullOrEmpty(newPriority))
+        {
+            var originalPriority = card.Priority;
+            card = card with { Priority = newPriority };
+            
+            var request = new UpdateCardRequest(card.Title, card.Description, newPriority, card.Status, card.DueDate, null, card.AssignedToId);
+            var updated = await Api.UpdateCardAsync(card.BoardId, CardId, request);
+            if (updated == null)
+            {
+                card = card with { Priority = originalPriority };
+                errorMessage = "Failed to update priority.";
+            }
+        }
+    }
+}

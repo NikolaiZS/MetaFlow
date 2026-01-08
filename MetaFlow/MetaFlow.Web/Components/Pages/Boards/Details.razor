@@ -1,0 +1,458 @@
+@page "/boards/{BoardId:guid}"
+@inject ApiServiceClient Api
+@inject NavigationManager Navigate
+@using MetaFlow.Contracts.Boards
+@using MetaFlow.Contracts.Columns
+@using MetaFlow.Contracts.Cards
+
+@if (board == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3>@board.Name</h3>
+        <div>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="checkbox" id="showArchived" @bind="showArchived" @bind:after="LoadData">
+                <label class="form-check-label" for="showArchived">Show Archived</label>
+            </div>
+            <button class="btn btn-secondary" @onclick="() => showCreateColumn = !showCreateColumn">
+                @(showCreateColumn ? "Cancel" : "Add Column")
+            </button>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @errorMessage
+            <button type="button" class="btn-close" @onclick="() => errorMessage = null" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (showCreateColumn)
+    {
+        <div class="card p-3 mb-3">
+             <EditForm Model="@createColumnModel" OnValidSubmit="HandleCreateColumn">
+                <DataAnnotationsValidator />
+                <div class="mb-2">
+                    <div class="input-group">
+                        <InputText @bind-Value="createColumnModel.Name" placeholder="Column Name" class="form-control" />
+                        <button type="submit" class="btn btn-primary">Add</button>
+                    </div>
+                    <ValidationMessage For="@(() => createColumnModel.Name)" class="text-danger small" />
+                </div>
+            </EditForm>
+        </div>
+    }
+
+    <div class="d-flex overflow-auto gap-3 pb-3" style="height: calc(100vh - 150px);">
+        @if (columns != null)
+        {
+            @foreach (var col in columns)
+            {
+                <div class="card flex-shrink-0" style="width: 300px; max-height: 100%;">
+                    <div class="card-header font-weight-bold d-flex justify-content-between align-items-center position-relative">
+                        <span class="flex-grow-1 text-break pe-2">@col.Name</span>
+                        <div class="dropdown">
+                             <button class="btn btn-sm btn-link text-secondary" type="button" @onclick:stopPropagation="true" @onclick="() => ToggleColumnMenu(col.Id)">
+                                 <i class="bi bi-three-dots-vertical">...</i>
+                             </button>
+                             @if (openColumnMenuId == col.Id)
+                             {
+                                 <ul class="dropdown-menu show" style="right: 0; left: auto; display: block;">
+                                     <li><button class="dropdown-item" @onclick="() => ShowEditColumn(col)">Rename</button></li>
+                                     <li><button class="dropdown-item text-danger" @onclick="() => HandleDeleteColumn(col.Id)">Delete</button></li>
+                                 </ul>
+                             }
+                        </div>
+                    </div>
+                    <div class="card-body overflow-auto" ondragover="event.preventDefault();" @ondrop="() => HandleDrop(col.Id)">
+                        @if (cards != null)
+                        {
+                            var colCards = cards.Where(c => c.ColumnId == col.Id).OrderBy(c => c.Position).ToList();
+                            @foreach (var card in colCards)
+                            {
+                                <div class="card mb-2 @(card.IsArchived ? "opacity-50 bg-light" : "")" 
+                                     draggable="true" 
+                                     @ondragstart="() => HandleDragStart(card)"
+                                     @onclick="() => OpenCard(card.Id)" 
+                                     style="cursor: grab;">
+                                    <div class="card-body p-2">
+                                        <h6 class="card-title mb-1">
+                                            @card.Title
+                                            @if(card.IsArchived) { <span class="badge bg-warning text-dark float-end">Archived</span> }
+                                        </h6>
+                                        <small class="text-muted">@card.Description</small>
+                                        <div class="mt-1">
+                                            <span class="badge bg-info text-dark">@card.Priority</span>
+                                            @if (card.AssignedToId.HasValue)
+                                            {
+                                                 <span class="badge bg-secondary">User</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        }
+                    </div>
+                    <div class="card-footer p-2">
+                         <button class="btn btn-sm btn-outline-primary w-100" @onclick="() => ShowAddCard(col.Id)">
+                             + Add Card
+                         </button>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+    
+    @if (openColumnMenuId != null)
+    {
+        <div class="position-fixed top-0 start-0 w-100 h-100" style="z-index: 900;" @onclick="CloseColumnMenu"></div>
+    }
+
+    @if (activeColumnIdForCard != null)
+    {
+        <div class="modal d-block" style="background: rgba(0,0,0,0.5)">
+             <div class="modal-dialog">
+                  <div class="modal-content">
+                       <div class="modal-header">
+                            <h5 class="modal-title">Add Card</h5>
+                            <button type="button" class="btn-close" @onclick="CancelAddCard"></button>
+                       </div>
+                       <div class="modal-body">
+                           <EditForm Model="@createCardModel" OnValidSubmit="HandleCreateCard">
+                                <DataAnnotationsValidator />
+                                <ValidationSummary />
+                                <div class="mb-3">
+                                    <label>Title</label>
+                                    <InputText @bind-Value="createCardModel.Title" class="form-control" />
+                                </div>
+                                <div class="mb-3">
+                                    <label>Description</label>
+                                    <InputTextArea @bind-Value="createCardModel.Description" class="form-control" />
+                                </div>
+                                <button type="submit" class="btn btn-primary">Create</button>
+                           </EditForm>
+                       </div>
+                  </div>
+             </div>
+        </div>
+    }
+
+    @if (editingColumnId != null)
+    {
+        <div class="modal d-block" style="background: rgba(0,0,0,0.5)">
+             <div class="modal-dialog">
+                  <div class="modal-content">
+                       <div class="modal-header">
+                            <h5 class="modal-title">Rename Column</h5>
+                            <button type="button" class="btn-close" @onclick="CancelEditColumn"></button>
+                       </div>
+                       <div class="modal-body">
+                           <EditForm Model="@updateColumnModel" OnValidSubmit="HandleUpdateColumn">
+                                <DataAnnotationsValidator />
+                                <div class="mb-3">
+                                    <label>Name</label>
+                                    <InputText @bind-Value="updateColumnModel.Name" class="form-control" />
+                                </div>
+                                <div class="mb-3">
+                                    <label>WIP Limit</label>
+                                    <InputNumber @bind-Value="updateColumnModel.WipLimit" class="form-control" />
+                                </div>
+                                <div class="mb-3">
+                                    <label>Color</label>
+                                    <InputText @bind-Value="updateColumnModel.Color" class="form-control" />
+                                </div>
+                                <button type="submit" class="btn btn-primary">Save</button>
+                           </EditForm>
+                       </div>
+                  </div>
+             </div>
+        </div>
+    }
+}
+
+@code {
+    [Parameter]
+    public Guid BoardId { get; set; }
+
+    private BoardResponse? board;
+    private List<ColumnListResponse>? columns;
+    private List<CardListResponse>? cards;
+
+    // Filter
+    private bool showArchived = false;
+
+    // Column
+    private bool showCreateColumn = false;
+    private CreateColumnViewModel createColumnModel = new();
+    private Guid? editingColumnId;
+    private UpdateColumnViewModel updateColumnModel = new();
+    
+    // Dropdown state
+    private Guid? openColumnMenuId;
+
+    // Card
+    private Guid? activeColumnIdForCard;
+    private CreateCardViewModel createCardModel = new();
+
+    private class UpdateColumnViewModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public int? WipLimit { get; set; }
+        public string? Color { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        board = await Api.GetBoardAsync(BoardId);
+        if (board != null)
+        {
+            columns = await Api.GetColumnsAsync(BoardId);
+            cards = await Api.GetCardsAsync(BoardId, showArchived);
+        }
+    }
+    
+    private void ToggleColumnMenu(Guid columnId)
+    {
+        if (openColumnMenuId == columnId)
+            openColumnMenuId = null;
+        else
+            openColumnMenuId = columnId;
+    }
+    
+    private void CloseColumnMenu()
+    {
+        openColumnMenuId = null;
+    }
+
+    // Drag and Drop
+    private CardListResponse? draggedCard;
+    private string? errorMessage;
+
+    private void HandleDragStart(CardListResponse card)
+    {
+        draggedCard = card;
+        errorMessage = null;
+    }
+
+    private async Task HandleDrop(Guid targetColumnId)
+    {
+        if (draggedCard != null && draggedCard.ColumnId != targetColumnId)
+        {
+            var originalCard = draggedCard;
+            var newCard = draggedCard with { ColumnId = targetColumnId };
+            
+            var index = cards?.FindIndex(c => c.Id == draggedCard.Id) ?? -1;
+            if (index != -1)
+            {
+                 cards![index] = newCard;
+                 StateHasChanged();
+            }
+            
+            var request = new MoveCardRequest(targetColumnId, 0);
+            var success = await Api.MoveCardAsync(BoardId, draggedCard.Id, request);
+            
+            if (!success)
+            {
+                if (index != -1)
+                {
+                    cards![index] = originalCard;
+                    StateHasChanged();
+                }
+                errorMessage = "Failed to move card. Please try again.";
+            }
+        }
+        draggedCard = null;
+    }
+
+    private async Task HandleCreateColumn()
+    {
+        var tempId = Guid.NewGuid();
+        var tempColumn = new ColumnListResponse(tempId, createColumnModel.Name, columns?.Count ?? 0, "standard", 10, "default", true, 0);
+        
+        columns ??= new();
+        columns.Add(tempColumn);
+        showCreateColumn = false;
+        createColumnModel = new();
+        StateHasChanged();
+
+        var request = new CreateColumnRequest(tempColumn.Name, null, "standard", 10, "default");
+        var response = await Api.CreateColumnAsync(BoardId, request);
+        
+        if (response != null)
+        {
+            var index = columns.FindIndex(c => c.Id == tempId);
+            if (index != -1)
+            {
+                columns[index] = new ColumnListResponse(
+                    response.Id, 
+                    response.Name, 
+                    response.Position, 
+                    response.ColumnType, 
+                    response.WipLimit, 
+                    response.Color, 
+                    response.IsVisible, 
+                    response.CardCount);
+            }
+        }
+        else
+        {
+            columns.Remove(tempColumn);
+            errorMessage = "Failed to create column.";
+        }
+    }
+    
+    private async Task HandleDeleteColumn(Guid columnId)
+    {
+        CloseColumnMenu();
+        var col = columns?.FirstOrDefault(c => c.Id == columnId);
+        if (col == null) return;
+
+        columns!.Remove(col);
+        StateHasChanged();
+
+        var success = await Api.DeleteColumnAsync(BoardId, columnId);
+        if (!success)
+        {
+            columns.Add(col);
+            columns.Sort((a, b) => a.Position.CompareTo(b.Position));
+            errorMessage = "Failed to delete column.";
+        }
+    }
+
+    private void ShowEditColumn(ColumnListResponse col)
+    {
+        CloseColumnMenu();
+        editingColumnId = col.Id;
+        updateColumnModel = new UpdateColumnViewModel 
+        { 
+            Name = col.Name,
+            WipLimit = col.WipLimit,
+            Color = col.Color 
+        };
+    }
+
+    private void CancelEditColumn()
+    {
+        editingColumnId = null;
+        updateColumnModel = new();
+    }
+
+    private async Task HandleUpdateColumn()
+    {
+        if (editingColumnId == null) return;
+        var colId = editingColumnId.Value;
+        var index = columns?.FindIndex(c => c.Id == colId) ?? -1;
+        if (index == -1) return;
+
+        var originalCol = columns![index];
+        var updatedCol = originalCol with 
+        { 
+            Name = updateColumnModel.Name,
+            WipLimit = updateColumnModel.WipLimit,
+            Color = updateColumnModel.Color ?? originalCol.Color
+        };
+
+        columns[index] = updatedCol;
+        editingColumnId = null; 
+        StateHasChanged();
+        
+        var request = new UpdateColumnRequest(
+            updateColumnModel.Name, 
+            updateColumnModel.Description, 
+            updateColumnModel.WipLimit, 
+            updateColumnModel.Color, 
+            null
+        );
+        var response = await Api.UpdateColumnAsync(BoardId, colId, request);
+        
+        if (response == null)
+        {
+            columns[index] = originalCol;
+            errorMessage = "Failed to update column.";
+        }
+    }
+
+    private void ShowAddCard(Guid columnId)
+    {
+        createCardModel = new();
+        activeColumnIdForCard = columnId;
+    }
+
+    private void CancelAddCard()
+    {
+        activeColumnIdForCard = null;
+    }
+
+    private async Task HandleCreateCard()
+    {
+        if (activeColumnIdForCard != null)
+        {
+             var tempId = Guid.NewGuid();
+             var tempCard = new CardListResponse(
+                 tempId, 
+                 createCardModel.Title, 
+                 createCardModel.Description, 
+                 activeColumnIdForCard.Value, 
+                 9999,
+                 "medium", 
+                 "todo", 
+                 DateTime.Now, 
+                 null, null, 0, 0, DateTime.Now, false);
+
+             cards ??= new();
+             cards.Add(tempCard);
+             var columnId = activeColumnIdForCard.Value;
+             activeColumnIdForCard = null;
+             StateHasChanged();
+
+             var request = new CreateCardRequest(
+                 createCardModel.Title,
+                 createCardModel.Description,
+                 columnId
+             );
+             
+             var response = await Api.CreateCardAsync(BoardId, request);
+             if (response != null)
+             {
+                 var index = cards.FindIndex(c => c.Id == tempId);
+                 if (index != -1)
+                 {
+                     cards[index] = new CardListResponse(
+                         response.Id,
+                         response.Title,
+                         response.Description,
+                         response.ColumnId,
+                         response.Position,
+                         response.Priority,
+                         response.Status,
+                         response.DueDate,
+                         response.AssignedToId,
+                         response.AssignedToUsername,
+                         0, 0, response.UpdatedAt, response.IsArchived
+                     );
+                 }
+             }
+             else
+             {
+                 cards.Remove(tempCard);
+                 errorMessage = "Failed to create card.";
+             }
+        }
+    }
+
+    private void OpenCard(Guid cardId)
+    {
+         Navigate.NavigateTo($"/cards/{cardId}");
+    }
+}

@@ -1,10 +1,23 @@
 using MetaFlow.Web.Components;
+using MetaFlow.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+// Register API Client
+builder.Services.AddHttpClient<ApiServiceClient>(client =>
+{
+    client.BaseAddress = new Uri("https://localhost:7208/");
+})
+.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+{
+    ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
+});
+
+builder.Services.AddScoped<AppState>();
 
 var app = builder.Build();
 

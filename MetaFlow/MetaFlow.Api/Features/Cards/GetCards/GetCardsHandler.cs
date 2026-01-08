@@ -39,7 +39,7 @@ namespace MetaFlow.Api.Features.Cards.GetCards
 
             var cardsQuery = client
                 .From<Card>()
-                .Select("id,title,priority,status,due_date,assigned_to_id,updated_at,column_id")
+                .Select("id,title,priority,status,due_date,assigned_to_id,updated_at,column_id,position,description,is_archived")
                 .Filter("board_id", Supabase.Postgrest.Constants.Operator.Equals, request.BoardId.ToString());
 
             if (request.ColumnId.HasValue)
@@ -106,6 +106,9 @@ namespace MetaFlow.Api.Features.Cards.GetCards
             var response = cards.Select(c => new CardListResponse(
                 c.Id,
                 c.Title,
+                c.Description,
+                c.ColumnId,
+                c.Position,
                 c.Priority,
                 c.Status,
                 c.DueDate,
@@ -113,7 +116,8 @@ namespace MetaFlow.Api.Features.Cards.GetCards
                 c.AssignedToId.HasValue ? assignedUsers.GetValueOrDefault(c.AssignedToId.Value) : null,
                 cardCounts.GetValueOrDefault(c.Id).comments,
                 cardCounts.GetValueOrDefault(c.Id).attachments,
-                c.UpdatedAt
+                c.UpdatedAt,
+                c.IsArchived
             )).ToList();
 
             return Result.Success(response);
