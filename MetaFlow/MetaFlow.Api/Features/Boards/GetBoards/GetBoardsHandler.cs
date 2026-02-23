@@ -1,24 +1,34 @@
-﻿using MediatR;
+using MediatR;
 using MetaFlow.Api.Common.Abstractions;
 using MetaFlow.Contracts.Boards;
 using MetaFlow.Domain.Entities;
 using MetaFlow.Infrastructure.Services;
+using MetaFlow.Infrastructure.Services.Cache;
 
 namespace MetaFlow.Api.Features.Boards.GetBoards
 {
     public class GetBoardsHandler : IRequestHandler<GetBoardsQuery, Result<List<BoardListResponse>>>
     {
         private readonly SupabaseService _supabaseService;
+        private readonly ICacheService _cache;
 
-        public GetBoardsHandler(SupabaseService supabaseService)
+        public GetBoardsHandler(SupabaseService supabaseService, ICacheService cache)
         {
             _supabaseService = supabaseService;
+            _cache = cache;
         }
 
         public async Task<Result<List<BoardListResponse>>> Handle(
             GetBoardsQuery request,
             CancellationToken cancellationToken)
         {
+            var cacheKey = $"boards:{request.UserId}:archived:{request.IncludeArchived}";
+            var cached = await _cache.GetAsync<List<BoardListResponse>>(cacheKey, cancellationToken);
+            if (cached is not null)
+            {
+                return Result.Success(cached);
+            }
+
             var client = _supabaseService.GetClient();
 
             var boardsQuery = client
@@ -39,7 +49,9 @@ namespace MetaFlow.Api.Features.Boards.GetBoards
 
             if (boards.Count == 0)
             {
-                return Result.Success(new List<BoardListResponse>());
+                var empty = new List<BoardListResponse>();
+                await _cache.SetAsync(cacheKey, empty, TimeSpan.FromSeconds(30), cancellationToken);
+                return Result.Success(empty);
             }
 
             var methodologyIds = boards.Select(b => b.MethodologyPresetId).Distinct().ToList();
@@ -78,6 +90,8 @@ namespace MetaFlow.Api.Features.Boards.GetBoards
                 b.IsArchived,
                 b.UpdatedAt
             )).ToList();
+
+            await _cache.SetAsync(cacheKey, response, TimeSpan.FromSeconds(30), cancellationToken);
 
             return Result.Success(response);
         }

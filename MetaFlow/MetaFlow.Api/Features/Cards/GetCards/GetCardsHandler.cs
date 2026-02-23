@@ -1,18 +1,21 @@
-﻿using MediatR;
+using MediatR;
 using MetaFlow.Api.Common.Abstractions;
 using MetaFlow.Contracts.Cards;
 using MetaFlow.Domain.Entities;
 using MetaFlow.Infrastructure.Services;
+using MetaFlow.Infrastructure.Services.Cache;
 
 namespace MetaFlow.Api.Features.Cards.GetCards
 {
     public class GetCardsHandler : IRequestHandler<GetCardsQuery, Result<List<CardListResponse>>>
     {
         private readonly SupabaseService _supabaseService;
+        private readonly ICacheService _cache;
 
-        public GetCardsHandler(SupabaseService supabaseService)
+        public GetCardsHandler(SupabaseService supabaseService, ICacheService cache)
         {
             _supabaseService = supabaseService;
+            _cache = cache;
         }
 
         public async Task<Result<List<CardListResponse>>> Handle(
@@ -35,6 +38,15 @@ namespace MetaFlow.Api.Features.Cards.GetCards
             if (board.OwnerId != request.UserId && !board.IsPublic)
             {
                 return Result.Failure<List<CardListResponse>>("Access denied");
+            }
+
+            var columnPart = request.ColumnId.HasValue ? request.ColumnId.Value.ToString() : "all";
+            var cacheKey = $"cards:{request.BoardId}:col:{columnPart}:arch:{request.IncludeArchived}";
+
+            var cached = await _cache.GetAsync<List<CardListResponse>>(cacheKey, cancellationToken);
+            if (cached is not null)
+            {
+                return Result.Success(cached);
             }
 
             var cardsQuery = client
@@ -60,7 +72,9 @@ namespace MetaFlow.Api.Features.Cards.GetCards
 
             if (cards.Count == 0)
             {
-                return Result.Success(new List<CardListResponse>());
+                var empty = new List<CardListResponse>();
+                await _cache.SetAsync(cacheKey, empty, TimeSpan.FromSeconds(30), cancellationToken);
+                return Result.Success(empty);
             }
 
             var assignedUserIds = cards
@@ -119,6 +133,8 @@ namespace MetaFlow.Api.Features.Cards.GetCards
                 c.UpdatedAt,
                 c.IsArchived
             )).ToList();
+
+            await _cache.SetAsync(cacheKey, response, TimeSpan.FromSeconds(30), cancellationToken);
 
             return Result.Success(response);
         }

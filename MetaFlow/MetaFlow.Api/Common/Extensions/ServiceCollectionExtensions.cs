@@ -1,8 +1,9 @@
-﻿using Carter;
+using Carter;
 using FluentValidation;
 using MetaFlow.Api.Common.Behaviors;
 using MetaFlow.Api.Common.Exceptions;
 using MetaFlow.Infrastructure.Services;
+using MetaFlow.Infrastructure.Services.Cache;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Reflection;
@@ -32,6 +33,15 @@ public static class ServiceCollectionExtensions
         services.AddScoped<PasswordHasher>();
         services.AddScoped<JwtService>();
         services.AddHttpContextAccessor();
+
+        services.AddStackExchangeRedisCache(options =>
+        {
+            options.Configuration = configuration.GetConnectionString("Redis")
+                ?? configuration["Redis:ConnectionString"];
+            options.InstanceName = configuration["Redis:InstanceName"] ?? "metaflow:";
+        });
+
+        services.AddScoped<ICacheService, RedisCacheService>();
 
         var jwtSecret = configuration["JwtSettings:Secret"]!;
         var jwtIssuer = configuration["JwtSettings:Issuer"]!;
