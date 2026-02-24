@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using MetaFlow.Api.Common.Abstractions;
 using MetaFlow.Contracts.Comments;
 using MetaFlow.Domain.Entities;

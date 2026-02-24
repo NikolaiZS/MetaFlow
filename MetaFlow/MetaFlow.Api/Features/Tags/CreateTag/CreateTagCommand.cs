@@ -1,4 +1,4 @@
-﻿using MetaFlow.Api.Common.Abstractions;
+using MetaFlow.Api.Common.Abstractions;
 using MetaFlow.Contracts.Tags;
 
 namespace MetaFlow.Api.Features.Tags.CreateTag

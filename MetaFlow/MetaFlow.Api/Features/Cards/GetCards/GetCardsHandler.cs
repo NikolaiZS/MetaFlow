@@ -73,7 +73,7 @@ namespace MetaFlow.Api.Features.Cards.GetCards
             if (cards.Count == 0)
             {
                 var empty = new List<CardListResponse>();
-                await _cache.SetAsync(cacheKey, empty, TimeSpan.FromSeconds(30), cancellationToken);
+                await _cache.SetAsync(cacheKey, empty, TimeSpan.FromMinutes(5), cancellationToken);
                 return Result.Success(empty);
             }
 
@@ -134,7 +134,7 @@ namespace MetaFlow.Api.Features.Cards.GetCards
                 c.IsArchived
             )).ToList();
 
-            await _cache.SetAsync(cacheKey, response, TimeSpan.FromSeconds(30), cancellationToken);
+            await _cache.SetAsync(cacheKey, response, TimeSpan.FromMinutes(5), cancellationToken);
 
             return Result.Success(response);
         }

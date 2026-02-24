@@ -50,7 +50,7 @@ namespace MetaFlow.Api.Features.Boards.GetBoards
             if (boards.Count == 0)
             {
                 var empty = new List<BoardListResponse>();
-                await _cache.SetAsync(cacheKey, empty, TimeSpan.FromSeconds(30), cancellationToken);
+                await _cache.SetAsync(cacheKey, empty, TimeSpan.FromMinutes(5), cancellationToken);
                 return Result.Success(empty);
             }
 
@@ -91,7 +91,7 @@ namespace MetaFlow.Api.Features.Boards.GetBoards
                 b.UpdatedAt
             )).ToList();
 
-            await _cache.SetAsync(cacheKey, response, TimeSpan.FromSeconds(30), cancellationToken);
+            await _cache.SetAsync(cacheKey, response, TimeSpan.FromMinutes(5), cancellationToken);
 
             return Result.Success(response);
         }

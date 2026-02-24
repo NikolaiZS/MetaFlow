@@ -1,18 +1,21 @@
-﻿using MediatR;
+using MediatR;
 using MetaFlow.Api.Common.Abstractions;
 using MetaFlow.Contracts.Attachments;
 using MetaFlow.Domain.Entities;
 using MetaFlow.Infrastructure.Services;
+using MetaFlow.Infrastructure.Services.Cache;
 
 namespace MetaFlow.Api.Features.Attachments.GetAttachments;
 
 public class GetAttachmentsHandler : IRequestHandler<GetAttachmentsQuery, Result<List<AttachmentResponse>>>
 {
     private readonly SupabaseService _supabaseService;
+    private readonly ICacheService _cache;
 
-    public GetAttachmentsHandler(SupabaseService supabaseService)
+    public GetAttachmentsHandler(SupabaseService supabaseService, ICacheService cache)
     {
         _supabaseService = supabaseService;
+        _cache = cache;
     }
 
     public async Task<Result<List<AttachmentResponse>>> Handle(
@@ -48,6 +51,13 @@ public class GetAttachmentsHandler : IRequestHandler<GetAttachmentsQuery, Result
             return Result.Failure<List<AttachmentResponse>>("Access denied");
         }
 
+        var cacheKey = $"attachments:{request.CardId}";
+        var cached = await _cache.GetAsync<List<AttachmentResponse>>(cacheKey, cancellationToken);
+        if (cached is not null)
+        {
+            return Result.Success(cached);
+        }
+
         var attachmentsResponse = await client
             .From<CardAttachment>()
             .Select("id,card_id,uploaded_by_id,file_name,file_url,file_size,mime_type,thumbnail_url,uploaded_at")
@@ -59,7 +69,9 @@ public class GetAttachmentsHandler : IRequestHandler<GetAttachmentsQuery, Result
 
         if (attachments.Count == 0)
         {
-            return Result.Success(new List<AttachmentResponse>());
+            var empty = new List<AttachmentResponse>();
+            await _cache.SetAsync(cacheKey, empty, TimeSpan.FromMinutes(5), cancellationToken);
+            return Result.Success(empty);
         }
 
         var uploaderIds = attachments.Select(a => a.UploadedById).Distinct().ToList();
@@ -91,6 +103,8 @@ public class GetAttachmentsHandler : IRequestHandler<GetAttachmentsQuery, Result
             a.ThumbnailUrl,
             a.UploadedAt
         )).ToList();
+
+        await _cache.SetAsync(cacheKey, response, TimeSpan.FromMinutes(5), cancellationToken);
 
         return Result.Success(response);
     }

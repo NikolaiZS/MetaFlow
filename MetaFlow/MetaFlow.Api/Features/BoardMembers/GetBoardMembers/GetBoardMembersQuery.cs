@@ -1,4 +1,4 @@
-﻿using MetaFlow.Api.Common;
+using MetaFlow.Api.Common;
 using MetaFlow.Api.Common.Abstractions;
 using MetaFlow.Contracts.BoardMembers;
 

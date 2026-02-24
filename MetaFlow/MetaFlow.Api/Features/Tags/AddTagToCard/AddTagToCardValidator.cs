@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 
 namespace MetaFlow.Api.Features.Tags.AddTagToCard
 {

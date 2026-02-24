@@ -106,7 +106,7 @@ public class LoginHandler : IRequestHandler<LoginCommand, Result<AuthResponse>>
             user.CreatedAt,
             user.UpdatedAt);
 
-        await _cache.SetAsync(cacheKey, cachedToStore, TimeSpan.FromMinutes(10), cancellationToken);
+        await _cache.SetAsync(cacheKey, cachedToStore, TimeSpan.FromMinutes(60), cancellationToken);
 
         var token = _jwtService.GenerateToken(user.Id, user.Email, user.Username);
         var expiresAt = DateTime.UtcNow.AddMinutes(1440);

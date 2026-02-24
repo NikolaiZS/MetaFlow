@@ -1,4 +1,4 @@
-﻿using Carter;
+using Carter;
 using MediatR;
 using MetaFlow.Api.Features.Cards.ArchiveCard;
 using MetaFlow.Api.Features.Cards.CreateCard;

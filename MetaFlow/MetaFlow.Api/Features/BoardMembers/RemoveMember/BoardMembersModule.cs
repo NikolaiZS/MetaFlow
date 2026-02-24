@@ -1,4 +1,4 @@
-﻿using Carter;
+using Carter;
 using MediatR;
 using MetaFlow.Api.Features.BoardMembers.GetBoardMembers;
 using MetaFlow.Api.Features.BoardMembers.InviteMember;

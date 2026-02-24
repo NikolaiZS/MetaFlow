@@ -1,4 +1,4 @@
-﻿using MetaFlow.Api.Common;
+using MetaFlow.Api.Common;
 using MetaFlow.Contracts.Columns;
 
 namespace MetaFlow.Api.Features.Columns.GetColumns

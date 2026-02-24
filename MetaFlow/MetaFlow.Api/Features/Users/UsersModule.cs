@@ -1,4 +1,4 @@
-﻿using Carter;
+using Carter;
 using MediatR;
 using MetaFlow.Api.Features.Users.GetCurrentUser;
 using MetaFlow.Contracts.Users;

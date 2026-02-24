@@ -1,18 +1,21 @@
-﻿using MediatR;
+using MediatR;
 using MetaFlow.Api.Common.Abstractions;
 using MetaFlow.Contracts.BoardMembers;
 using MetaFlow.Domain.Entities;
 using MetaFlow.Infrastructure.Services;
+using MetaFlow.Infrastructure.Services.Cache;
 
 namespace MetaFlow.Api.Features.BoardMembers.GetBoardMembers
 {
     public class GetBoardMembersHandler : IRequestHandler<GetBoardMembersQuery, Result<List<BoardMemberResponse>>>
     {
         private readonly SupabaseService _supabaseService;
+        private readonly ICacheService _cache;
 
-        public GetBoardMembersHandler(SupabaseService supabaseService)
+        public GetBoardMembersHandler(SupabaseService supabaseService, ICacheService cache)
         {
             _supabaseService = supabaseService;
+            _cache = cache;
         }
 
         public async Task<Result<List<BoardMemberResponse>>> Handle(
@@ -37,6 +40,13 @@ namespace MetaFlow.Api.Features.BoardMembers.GetBoardMembers
                 return Result.Failure<List<BoardMemberResponse>>("Access denied");
             }
 
+            var cacheKey = $"board-members:{request.BoardId}";
+            var cached = await _cache.GetAsync<List<BoardMemberResponse>>(cacheKey, cancellationToken);
+            if (cached is not null)
+            {
+                return Result.Success(cached);
+            }
+
             var membersResponse = await client
                 .From<BoardMember>()
                 .Select("id,board_id,user_id,role,joined_at,invited_by")
@@ -48,7 +58,9 @@ namespace MetaFlow.Api.Features.BoardMembers.GetBoardMembers
 
             if (members.Count == 0)
             {
-                return Result.Success(new List<BoardMemberResponse>());
+                var empty = new List<BoardMemberResponse>();
+                await _cache.SetAsync(cacheKey, empty, TimeSpan.FromMinutes(5), cancellationToken);
+                return Result.Success(empty);
             }
 
             var userIds = members.Select(m => m.UserId)
@@ -91,6 +103,8 @@ namespace MetaFlow.Api.Features.BoardMembers.GetBoardMembers
                     inviterInfo.Item1
                 );
             }).ToList();
+
+            await _cache.SetAsync(cacheKey, response, TimeSpan.FromMinutes(5), cancellationToken);
 
             return Result.Success(response);
         }

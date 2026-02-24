@@ -1,8 +1,9 @@
-﻿using MediatR;
+using MediatR;
 using MetaFlow.Api.Common.Abstractions;
 using MetaFlow.Contracts.Users;
 using MetaFlow.Domain.Entities;
 using MetaFlow.Infrastructure.Services;
+using MetaFlow.Infrastructure.Services.Cache;
 
 namespace MetaFlow.Api.Features.Users.GetCurrentUser;
 
@@ -10,13 +11,16 @@ public class GetCurrentUserHandler : IRequestHandler<GetCurrentUserQuery, Result
 {
     private readonly SupabaseService _supabaseService;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly ICacheService _cache;
 
     public GetCurrentUserHandler(
         SupabaseService supabaseService,
-        IHttpContextAccessor httpContextAccessor)
+        IHttpContextAccessor httpContextAccessor,
+        ICacheService cache)
     {
         _supabaseService = supabaseService;
         _httpContextAccessor = httpContextAccessor;
+        _cache = cache;
     }
 
     public async Task<Result<UserResponse>> Handle(
@@ -29,6 +33,13 @@ public class GetCurrentUserHandler : IRequestHandler<GetCurrentUserQuery, Result
         if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
         {
             return Result.Failure<UserResponse>("User not authenticated");
+        }
+
+        var cacheKey = $"user:{userId}";
+        var cached = await _cache.GetAsync<UserResponse>(cacheKey, cancellationToken);
+        if (cached is not null)
+        {
+            return Result.Success(cached);
         }
 
         var client = _supabaseService.GetClient();
@@ -52,6 +63,8 @@ public class GetCurrentUserHandler : IRequestHandler<GetCurrentUserQuery, Result
             response.EmailVerified,
             response.CreatedAt
         );
+
+        await _cache.SetAsync(cacheKey, userResponse, TimeSpan.FromMinutes(5), cancellationToken);
 
         return Result.Success(userResponse);
     }
