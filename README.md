@@ -141,6 +141,6 @@ MetaFlow/
 | `comment-mention` | Упоминание в комментарии | `userName`, `commentAuthor`, `commentContent`, `cardTitle`, `boardName`, `cardLink` |
 ---
 
-**Статус проекта:** В активной разработке ✅
+**Статус проекта:** Заброшен ✔️
 
 **Последнее обновление:** 7 апреля 2026
