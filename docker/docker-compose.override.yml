@@ -1,0 +1,11 @@
+services:
+  email-service:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - Smtp__Host=maildev
+      - Smtp__Port=1025
+      - Smtp__EnableSsl=false
+      - Smtp__Username=
+      - Smtp__Password=
+      - Smtp__FromEmail=test@metaflow.local
+      - Smtp__FromName=MetaFlow Test

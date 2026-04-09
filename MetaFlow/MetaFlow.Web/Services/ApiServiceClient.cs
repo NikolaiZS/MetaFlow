@@ -1,5 +1,7 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Net.Http.Headers;
+using Microsoft.AspNetCore.Components.Forms;
 using MetaFlow.Contracts.Boards;
 using MetaFlow.Contracts.Cards;
 using MetaFlow.Contracts.Columns;
@@ -224,6 +226,39 @@ public class ApiServiceClient
 
     public Task<AttachmentResponse?> UploadAttachmentAsync(Guid cardId, UploadAttachmentRequest request) =>
         PostAsync<UploadAttachmentRequest, AttachmentResponse>($"api/cards/{cardId}/attachments", request);
+    
+    public async Task<AttachmentResponse?> UploadAttachmentFileAsync(Guid cardId, IBrowserFile file)
+    {
+        try
+        {
+            SetAuthorizationHeader();
+            var uri = $"api/cards/{cardId}/attachments/file";
+
+            using var content = new MultipartFormDataContent();
+            await using var stream = file.OpenReadStream(50 * 1024 * 1024); // 50MB limit
+            var fileContent = new StreamContent(stream);
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+
+            content.Add(fileContent, "file", file.Name);
+
+            var response = await _httpClient.PostAsync(uri, content);
+            var body = await response.Content.ReadAsStringAsync();
+            _appState.UpdateLastResponse("POST", uri, (int)response.StatusCode, body, GetHeaders(), GetResponseHeaders(response));
+
+            if (response.IsSuccessStatusCode)
+            {
+                return JsonSerializer.Deserialize<AttachmentResponse>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            }
+
+            _logger.LogError("Error uploading attachment file to {Uri}: {StatusCode} {Error}", uri, response.StatusCode, body);
+            return default;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error uploading attachment file to {Uri}", $"api/cards/{cardId}/attachments/file");
+            return default;
+        }
+    }
         
     public Task<bool> DeleteAttachmentAsync(Guid cardId, Guid attachmentId) =>
         DeleteAsync($"api/cards/{cardId}/attachments/{attachmentId}");

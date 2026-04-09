@@ -38,36 +38,100 @@ else
 
                 <!-- Attachments -->
                 <div class="mb-4">
-                     <h5>Attachments</h5>
-                     @if (attachments != null)
+                     <h5>
+                         📎 Attachments 
+                         @if (attachments != null && attachments.Count > 0)
+                         {
+                             <span class="badge bg-secondary ms-2">@attachments.Count</span>
+                         }
+                     </h5>
+                     
+                     @if (attachments != null && attachments.Count > 0)
                      {
-                         <ul class="list-group mb-3">
+                         <div class="row g-3 mb-3">
                              @foreach (var att in attachments)
                              {
-                                 <li class="list-group-item d-flex justify-content-between align-items-center">
-                                     <div>
-                                         <a href="@att.FileUrl" target="_blank">@att.FileName</a>
-                                         <br/>
-                                         <small class="text-muted">@att.UploadedAt.ToShortDateString()</small>
+                                 <div class="col-md-6 col-lg-4">
+                                     <div class="card h-100 shadow-sm">
+                                         @if (IsImage(att.FileName))
+                                         {
+                                             <img src="@att.FileUrl" class="card-img-top" alt="@att.FileName" style="height: 150px; object-fit: cover;" @onclick="() => OpenFile(att.FileUrl)" />
+                                         }
+                                         else
+                                         {
+                                             <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 150px; cursor: pointer;" @onclick="() => OpenFile(att.FileUrl)">
+                                                 <div class="text-center">
+                                                     <i class="@GetFileIcon(att.FileName)" style="font-size: 3rem; color: #6c757d;"></i>
+                                                     <div class="mt-2 small text-muted">@GetFileExtension(att.FileName)</div>
+                                                 </div>
+                                             </div>
+                                         }
+                                         <div class="card-body p-2">
+                                             <h6 class="card-title text-truncate mb-1" title="@att.FileName" style="cursor: pointer;" @onclick="() => OpenFile(att.FileUrl)">
+                                                 @att.FileName
+                                             </h6>
+                                             <small class="text-muted d-block">@FormatFileSize(att.FileSize)</small>
+                                             <small class="text-muted d-block">by @att.UploadedByUsername • @att.UploadedAt.ToShortDateString()</small>
+                                         </div>
+                                         <div class="card-footer bg-transparent p-1">
+                                             <div class="btn-group btn-group-sm w-100">
+                                                 <button class="btn btn-outline-primary" @onclick="() => OpenFile(att.FileUrl)" title="Открыть">
+                                                     <i class="bi bi-box-arrow-up-right"></i> Открыть
+                                                 </button>
+                                                 <button class="btn btn-outline-danger" @onclick="() => HandleDeleteAttachment(att.Id)" title="Удалить">
+                                                     <i class="bi bi-trash"></i>
+                                                 </button>
+                                             </div>
+                                         </div>
                                      </div>
-                                     <button class="btn btn-sm btn-outline-danger" @onclick="() => HandleDeleteAttachment(att.Id)">Delete</button>
-                                 </li>
+                                 </div>
                              }
-                         </ul>
+                         </div>
                      }
-                     
+
+                     <!-- Upload Area -->
                      <div class="card p-3">
-                         <h6>Add Attachment (Mock)</h6>
-                         <EditForm Model="@uploadModel" OnValidSubmit="HandleUpload">
-                             <DataAnnotationsValidator />
-                             <div class="mb-2">
-                                 <InputText @bind-Value="uploadModel.FileName" placeholder="File Name" class="form-control" />
+                         <h6 class="mb-3">
+                             <i class="bi bi-cloud-upload"></i> Загрузить файл
+                         </h6>
+                         
+                         @if (isUploading)
+                         {
+                             <div class="alert alert-info mb-3">
+                                 <div class="d-flex align-items-center">
+                                     <div class="spinner-border spinner-border-sm me-2" role="status">
+                                         <span class="visually-hidden">Загрузка...</span>
+                                     </div>
+                                     <span>Загрузка: @uploadProgress</span>
+                                 </div>
                              </div>
-                             <div class="mb-2">
-                                 <InputText @bind-Value="uploadModel.FileUrl" placeholder="File URL" class="form-control" />
-                             </div>
-                             <button type="submit" class="btn btn-sm btn-secondary">Add Attachment</button>
-                         </EditForm>
+                         }
+
+                         <div class="mb-3">
+                             <InputFile OnChange="HandleFileSelected" multiple class="form-control" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip,.rar" />
+                             @if (selectedFiles?.Count > 0)
+                             {
+                                 <div class="mt-2">
+                                     <small class="text-muted">Выбрано файлов: @selectedFiles.Count</small>
+                                     <ul class="list-group list-group-flush mt-2">
+                                         @foreach (var file in selectedFiles)
+                                         {
+                                             <li class="list-group-item d-flex justify-content-between align-items-center py-1 px-2">
+                                                 <span>
+                                                     <i class="@GetFileIcon(file.Name)"></i> 
+                                                     @file.Name 
+                                                     <small class="text-muted">(@FormatFileSize(file.Size))</small>
+                                                 </span>
+                                             </li>
+                                         }
+                                     </ul>
+                                 </div>
+                             }
+                         </div>
+                         
+                         <button class="btn btn-primary btn-sm" @onclick="HandleUploadFiles" disabled="@(selectedFiles == null || selectedFiles.Count == 0 || isUploading)">
+                             <i class="bi bi-upload"></i> Загрузить (@(selectedFiles?.Count ?? 0) файлов)
+                         </button>
                      </div>
                 </div>
 
@@ -120,6 +184,13 @@ else
                              <DataAnnotationsValidator />
                              <div class="mb-2">
                                  <InputTextArea @bind-Value="commentModel.Content" placeholder="Write a comment..." class="form-control" />
+                             </div>
+                             <div class="mb-2">
+                                 <InputFile OnChange="HandleCommentFileSelected" multiple />
+                                 @if (commentFiles?.Count > 0)
+                                 {
+                                     <small class="text-muted">@($"{commentFiles.Count} file(s) selected")</small>
+                                 }
                              </div>
                              <button type="submit" class="btn btn-sm btn-primary">Post Comment</button>
                          </EditForm>
@@ -199,8 +270,11 @@ else
     private List<AttachmentResponse>? attachments;
 
     private CreateCommentViewModel commentModel = new();
-    private UploadAttachmentViewModel uploadModel = new();
-    
+    private List<IBrowserFile> commentFiles = new();
+    private List<IBrowserFile>? selectedFiles;
+    private bool isUploading = false;
+    private string uploadProgress = "";
+
     private Guid? editingCommentId;
     private UpdateCommentViewModel editCommentModel = new();
     private string? errorMessage;
@@ -215,6 +289,11 @@ else
         await LoadData();
     }
 
+    private void HandleCommentFileSelected(InputFileChangeEventArgs e)
+    {
+        commentFiles = e.GetMultipleFiles().ToList();
+    }
+
     private async Task LoadData()
     {
         card = await Api.GetCardAsync(CardId);
@@ -223,6 +302,107 @@ else
              comments = await Api.GetCommentsAsync(CardId);
              attachments = await Api.GetAttachmentsAsync(CardId);
         }
+    }
+
+    private void HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        selectedFiles = e.GetMultipleFiles().ToList();
+        errorMessage = null;
+    }
+
+    private async Task HandleUploadFiles()
+    {
+        if (selectedFiles == null || selectedFiles.Count == 0) return;
+
+        isUploading = true;
+        uploadProgress = $"Загрузка 0 из {selectedFiles.Count} файлов...";
+        StateHasChanged();
+
+        var successCount = 0;
+        var failedCount = 0;
+
+        for (int i = 0; i < selectedFiles.Count; i++)
+        {
+            var file = selectedFiles[i];
+            uploadProgress = $"Загрузка {i + 1} из {selectedFiles.Count}: {file.Name}...";
+            StateHasChanged();
+
+            try
+            {
+                var uploaded = await Api.UploadAttachmentFileAsync(CardId, file);
+                if (uploaded != null)
+                {
+                    attachments ??= new();
+                    attachments.Add(uploaded);
+                    successCount++;
+                }
+                else
+                {
+                    failedCount++;
+                    errorMessage = $"Не удалось загрузить файл: {file.Name}";
+                }
+            }
+            catch (Exception ex)
+            {
+                failedCount++;
+                errorMessage = $"Ошибка загрузки {file.Name}: {ex.Message}";
+            }
+        }
+
+        uploadProgress = $"Загружено: {successCount} успешно, {failedCount} ошибок";
+        selectedFiles = null;
+        isUploading = false;
+        StateHasChanged();
+    }
+
+    private void OpenFile(string fileUrl)
+    {
+        Navigate.NavigateTo(fileUrl, forceLoad: true);
+    }
+
+    private bool IsImage(string fileName)
+    {
+        var extension = Path.GetExtension(fileName).ToLowerInvariant();
+        return extension is ".jpg" or ".jpeg" or ".png" or ".gif" or ".webp" or ".bmp" or ".svg";
+    }
+
+    private string GetFileIcon(string fileName)
+    {
+        var extension = Path.GetExtension(fileName).ToLowerInvariant();
+        return extension switch
+        {
+            ".pdf" => "bi bi-file-earmark-pdf",
+            ".doc" or ".docx" => "bi bi-file-earmark-word",
+            ".xls" or ".xlsx" => "bi bi-file-earmark-excel",
+            ".zip" or ".rar" => "bi bi-file-earmark-zip",
+            ".txt" => "bi bi-file-earmark-text",
+            ".jpg" or ".jpeg" or ".png" or ".gif" or ".webp" => "bi bi-file-earmark-image",
+            ".mp4" or ".avi" or ".mov" => "bi bi-file-earmark-play",
+            ".mp3" or ".wav" => "bi bi-file-earmark-music",
+            _ => "bi bi-file-earmark"
+        };
+    }
+
+    private string GetFileExtension(string fileName)
+    {
+        return Path.GetExtension(fileName).ToUpperInvariant().TrimStart('.');
+    }
+
+    private string FormatFileSize(long? bytes)
+    {
+        if (!bytes.HasValue || bytes.Value == 0) return "0 B";
+        
+        string[] sizes = { "B", "KB", "MB", "GB", "TB" };
+        int order = 0;
+        double size = bytes.Value;
+        
+        while (size >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            size /= 1024;
+        }
+        
+        return $"{size:0.##} {sizes[order]}";
     }
 
     private async Task HandleComment()
@@ -251,6 +431,26 @@ else
         {
              comments.Remove(tempComment);
              errorMessage = "Failed to post comment.";
+        }
+
+        if (response != null && commentFiles.Count > 0)
+        {
+            attachments ??= new();
+
+            foreach (var file in commentFiles)
+            {
+                var uploaded = await Api.UploadAttachmentFileAsync(CardId, file);
+                if (uploaded != null)
+                {
+                    attachments.Add(uploaded);
+                }
+                else
+                {
+                    errorMessage ??= "Failed to upload one or more attachments.";
+                }
+            }
+
+            commentFiles.Clear();
         }
     }
     
@@ -307,35 +507,6 @@ else
         }
     }
 
-    private async Task HandleUpload()
-    {
-        var tempId = Guid.NewGuid();
-        var tempAttachment = new AttachmentResponse(
-            tempId, CardId, Guid.Empty, "You", uploadModel.FileName, uploadModel.FileUrl, 0, "text/plain", null, DateTime.Now);
-
-        attachments ??= new();
-        attachments.Add(tempAttachment);
-        uploadModel = new();
-        StateHasChanged();
-
-        var request = new UploadAttachmentRequest(tempAttachment.FileName, tempAttachment.FileUrl, 1024, "text/plain", null);
-        var response = await Api.UploadAttachmentAsync(CardId, request);
-        
-        if (response != null)
-        {
-             var index = attachments.FindIndex(a => a.Id == tempId);
-             if (index != -1)
-             {
-                 attachments[index] = response;
-             }
-        }
-        else
-        {
-            attachments.Remove(tempAttachment);
-            errorMessage = "Failed to upload attachment.";
-        }
-    }
-    
     private async Task HandleDeleteAttachment(Guid attachmentId)
     {
         var attachment = attachments?.FirstOrDefault(a => a.Id == attachmentId);

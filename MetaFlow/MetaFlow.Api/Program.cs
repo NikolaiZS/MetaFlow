@@ -7,6 +7,12 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddScoped<PermissionService>();
+
+// Настройка ограничения размера файлов (50MB)
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 50 * 1024 * 1024; // 50MB
+});
 builder.Services.AddSwaggerGen(c =>
 {
     Debug.WriteLine("!!!Swagger started!!!!");
