@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: email-service
+  namespace: metaflow
+  labels:
+    app: email-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: email-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: email-service
+    spec:
+      containers:
+      - name: email-service
+        image: ghcr.io/your-org/email-service:latest
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        envFrom:
+        - configMapRef:
+            name: email-service-config
+        - secretRef:
+            name: metaflow-secrets
+        env:
+        - name: Smtp__Username
+          valueFrom:
+            secretKeyRef:
+              name: metaflow-secrets
+              key: SMTP_USERNAME
+        - name: Smtp__Password
+          valueFrom:
+            secretKeyRef:
+              name: metaflow-secrets
+              key: SMTP_PASSWORD
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+      restartPolicy: Always

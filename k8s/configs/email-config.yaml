@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: email-service-config
+  namespace: metaflow
+  labels:
+    app: email-service
+data:
+  ASPNETCORE_ENVIRONMENT: "Production"
+  ASPNETCORE_URLS: "http://+:8080"
+  Smtp__Host: "smtp.gmail.com"
+  Smtp__Port: "587"
+  Smtp__EnableSsl: "true"
+  Smtp__FromEmail: "noreply@metaflow.com"
+  Smtp__FromName: "MetaFlow"
+  RateLimiting__MaxEmailsPerHour: "100"
+  RateLimiting__MaxEmailsPerDay: "1000"

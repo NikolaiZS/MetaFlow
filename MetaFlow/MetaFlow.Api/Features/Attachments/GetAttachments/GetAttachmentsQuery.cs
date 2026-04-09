@@ -1,4 +1,4 @@
-﻿using MetaFlow.Api.Common;
+using MetaFlow.Api.Common;
 using MetaFlow.Contracts.Attachments;
 
 namespace MetaFlow.Api.Features.Attachments.GetAttachments

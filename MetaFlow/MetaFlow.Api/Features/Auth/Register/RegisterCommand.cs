@@ -1,4 +1,4 @@
-﻿using MetaFlow.Api.Common.Abstractions;
+using MetaFlow.Api.Common.Abstractions;
 using MetaFlow.Contracts.Users;
 
 namespace MetaFlow.Api.Features.Auth.Register

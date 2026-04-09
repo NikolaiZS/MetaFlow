@@ -1,4 +1,4 @@
-﻿using MetaFlow.Api.Common.Abstractions;
+using MetaFlow.Api.Common.Abstractions;
 using MetaFlow.Contracts.Cards;
 
 namespace MetaFlow.Api.Features.Cards.UpdateCard

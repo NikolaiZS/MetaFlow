@@ -1,0 +1,123 @@
+services:
+  # Main API
+  api:
+    build:
+      context: ../MetaFlow
+      dockerfile: MetaFlow.Api/Dockerfile
+    container_name: metaflow-api
+    ports:
+      - "7208:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__Supabase=${SUPABASE_CONNECTION_STRING}
+      - ConnectionStrings__Redis=${REDIS_CONNECTION_STRING}
+      - Supabase__Url=${SUPABASE_URL}
+      - Supabase__ServiceRoleKey=${SUPABASE_SERVICE_KEY}
+      - JwtSettings__Secret=${JWT_SECRET}
+      - EmailService__BaseUrl=http://email-service:8080
+    depends_on:
+      - postgres
+      - redis
+      - email-service
+    networks:
+      - backend
+      - frontend
+
+  # Blazor Web UI
+  web:
+    build:
+      context: ../MetaFlow
+      dockerfile: MetaFlow.Web/Dockerfile
+    container_name: metaflow-web
+    ports:
+      - "7209:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ApiClient__BaseUrl=http://api:8080
+    depends_on:
+      - api
+    networks:
+      - frontend
+
+  # Email Service
+  email-service:
+    build:
+      context: ../services/email-service/EmailService.Api
+      dockerfile: Dockerfile
+    container_name: metaflow-email-service
+    ports:
+      - "8081:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - Smtp__Host=${SMTP_HOST}
+      - Smtp__Port=${SMTP_PORT}
+      - Smtp__Username=${SMTP_USERNAME}
+      - Smtp__Password=${SMTP_PASSWORD}
+      - Smtp__FromEmail=${SMTP_FROM_EMAIL}
+      - Smtp__FromName=${SMTP_FROM_NAME}
+    networks:
+      - backend
+
+  # PostgreSQL (Supabase local)
+  postgres:
+    image: supabase/postgres:15.1.0.117
+    container_name: metaflow-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: metaflow-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - backend
+
+  # Seq (Logging)
+  seq:
+    image: datalust/seq:latest
+    container_name: metaflow-seq
+    ports:
+      - "5341:80"
+    environment:
+      - ACCEPT_EULA=Y
+      - SEQ_FIRSTRUN_ADMINPASSWORD=admin123!
+    volumes:
+      - seq_data:/data
+    networks:
+      - backend
+
+  # MailDev (for development - email testing)
+  maildev:
+    image: maildev/maildev:latest
+    container_name: metaflow-maildev
+    ports:
+      - "1080:1080"  # Web UI
+      - "1025:1025"  # SMTP
+    networks:
+      - backend
+    profiles:
+      - dev
+
+volumes:
+  postgres_data:
+  redis_data:
+  seq_data:
+
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge

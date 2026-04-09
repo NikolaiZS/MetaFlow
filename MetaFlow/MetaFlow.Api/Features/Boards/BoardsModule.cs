@@ -1,4 +1,4 @@
-﻿using Carter;
+using Carter;
 using MediatR;
 using MetaFlow.Api.Features.Boards.CreateBoard;
 using MetaFlow.Api.Features.Boards.DeleteBoard;

@@ -1,4 +1,4 @@
-﻿using MetaFlow.Api.Common.Abstractions;
+using MetaFlow.Api.Common.Abstractions;
 using MetaFlow.Contracts.Comments;
 
 namespace MetaFlow.Api.Features.Comments.UpdateComment

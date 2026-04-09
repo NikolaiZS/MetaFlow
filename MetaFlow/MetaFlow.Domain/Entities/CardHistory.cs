@@ -1,11 +1,11 @@
-﻿using MetaFlow.Domain.Models;
+﻿using MetaFlow.Domain.Common;
+using MetaFlow.Domain.Models;
 using Supabase.Postgrest.Attributes;
-using Supabase.Postgrest.Models;
 
 namespace MetaFlow.Domain.Entities;
 
 [Table("card_history")]
-public class CardHistory : BaseModel
+public class CardHistory : BaseEntity
 {
     [PrimaryKey("id", false)]
     [Column("id")]

@@ -1,24 +1,39 @@
-﻿using MediatR;
+using MediatR;
 using MetaFlow.Api.Common.Abstractions;
 using MetaFlow.Contracts.Boards;
 using MetaFlow.Domain.Entities;
 using MetaFlow.Infrastructure.Services;
+using MetaFlow.Infrastructure.Services.Cache;
 
 namespace MetaFlow.Api.Features.Boards.GetBoard
 {
     public class GetBoardHandler : IRequestHandler<GetBoardQuery, Result<BoardResponse>>
     {
         private readonly SupabaseService _supabaseService;
+        private readonly ICacheService _cache;
 
-        public GetBoardHandler(SupabaseService supabaseService)
+        public GetBoardHandler(SupabaseService supabaseService, ICacheService cache)
         {
             _supabaseService = supabaseService;
+            _cache = cache;
         }
 
         public async Task<Result<BoardResponse>> Handle(
             GetBoardQuery request,
             CancellationToken cancellationToken)
         {
+            var cacheKey = $"board:{request.BoardId}";
+            var cached = await _cache.GetAsync<BoardResponse>(cacheKey, cancellationToken);
+            if (cached is not null)
+            {
+                if (cached.OwnerId != request.UserId && !cached.IsPublic)
+                {
+                    return Result.Failure<BoardResponse>("Access denied");
+                }
+
+                return Result.Success(cached);
+            }
+
             var client = _supabaseService.GetClient();
 
             var board = await client
@@ -63,6 +78,8 @@ namespace MetaFlow.Api.Features.Boards.GetBoard
                 board.CreatedAt,
                 board.UpdatedAt
             );
+
+            await _cache.SetAsync(cacheKey, response, TimeSpan.FromMinutes(5), cancellationToken);
 
             return Result.Success(response);
         }

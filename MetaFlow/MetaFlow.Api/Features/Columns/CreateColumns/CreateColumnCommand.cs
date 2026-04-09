@@ -1,4 +1,4 @@
-﻿using MetaFlow.Api.Common.Abstractions;
+using MetaFlow.Api.Common.Abstractions;
 using MetaFlow.Contracts.Columns;
 
 namespace MetaFlow.Api.Features.Columns.CreateColumns

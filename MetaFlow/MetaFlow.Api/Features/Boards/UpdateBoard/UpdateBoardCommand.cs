@@ -1,4 +1,4 @@
-﻿using MetaFlow.Api.Common.Abstractions;
+using MetaFlow.Api.Common.Abstractions;
 using MetaFlow.Contracts.Boards;
 
 namespace MetaFlow.Api.Features.Boards.UpdateBoard

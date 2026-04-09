@@ -1,24 +1,34 @@
-﻿using MediatR;
+using MediatR;
 using MetaFlow.Api.Common.Abstractions;
 using MetaFlow.Contracts.Columns;
 using MetaFlow.Domain.Entities;
 using MetaFlow.Infrastructure.Services;
+using MetaFlow.Infrastructure.Services.Cache;
 
 namespace MetaFlow.Api.Features.Columns.GetColumns
 {
     public class GetColumnsHandler : IRequestHandler<GetColumnsQuery, Result<List<ColumnListResponse>>>
     {
         private readonly SupabaseService _supabaseService;
+        private readonly ICacheService _cache;
 
-        public GetColumnsHandler(SupabaseService supabaseService)
+        public GetColumnsHandler(SupabaseService supabaseService, ICacheService cache)
         {
             _supabaseService = supabaseService;
+            _cache = cache;
         }
 
         public async Task<Result<List<ColumnListResponse>>> Handle(
             GetColumnsQuery request,
             CancellationToken cancellationToken)
         {
+            var cacheKey = $"columns:{request.BoardId}:user:{request.UserId}";
+            var cached = await _cache.GetAsync<List<ColumnListResponse>>(cacheKey, cancellationToken);
+            if (cached is not null)
+            {
+                return Result.Success(cached);
+            }
+
             var client = _supabaseService.GetClient();
 
             // Verify board exists and user has access
@@ -74,6 +84,8 @@ namespace MetaFlow.Api.Features.Columns.GetColumns
                 c.IsVisible,
                 cardCounts.GetValueOrDefault(c.Id, 0)
             )).ToList();
+
+            await _cache.SetAsync(cacheKey, response, TimeSpan.FromMinutes(5), cancellationToken);
 
             return Result.Success(response);
         }

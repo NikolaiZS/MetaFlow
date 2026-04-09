@@ -1,18 +1,21 @@
-﻿using MediatR;
+using MediatR;
 using MetaFlow.Api.Common.Abstractions;
 using MetaFlow.Contracts.Cards;
 using MetaFlow.Domain.Entities;
 using MetaFlow.Infrastructure.Services;
+using MetaFlow.Infrastructure.Services.Cache;
 
 namespace MetaFlow.Api.Features.Cards.GetCard
 {
     public class GetCardHandler : IRequestHandler<GetCardQuery, Result<CardResponse>>
     {
         private readonly SupabaseService _supabaseService;
+        private readonly ICacheService _cache;
 
-        public GetCardHandler(SupabaseService supabaseService)
+        public GetCardHandler(SupabaseService supabaseService, ICacheService cache)
         {
             _supabaseService = supabaseService;
+            _cache = cache;
         }
 
         public async Task<Result<CardResponse>> Handle(
@@ -20,6 +23,29 @@ namespace MetaFlow.Api.Features.Cards.GetCard
             CancellationToken cancellationToken)
         {
             var client = _supabaseService.GetClient();
+            var cacheKey = $"card:{request.CardId}";
+
+            var cached = await _cache.GetAsync<CardResponse>(cacheKey, cancellationToken);
+            if (cached is not null)
+            {
+                var cachedBoard = await client
+                    .From<Board>()
+                    .Select("id,owner_id,is_public")
+                    .Filter("id", Supabase.Postgrest.Constants.Operator.Equals, cached.BoardId.ToString())
+                    .Single();
+
+                if (cachedBoard == null)
+                {
+                    return Result.Failure<CardResponse>("Board not found");
+                }
+
+                if (cachedBoard.OwnerId != request.UserId && !cachedBoard.IsPublic)
+                {
+                    return Result.Failure<CardResponse>("Access denied");
+                }
+
+                return Result.Success(cached);
+            }
 
             var card = await client
                 .From<Card>()
@@ -91,6 +117,8 @@ namespace MetaFlow.Api.Features.Cards.GetCard
                 card.CreatedAt,
                 card.UpdatedAt
             );
+
+            await _cache.SetAsync(cacheKey, response, TimeSpan.FromMinutes(5), cancellationToken);
 
             return Result.Success(response);
         }

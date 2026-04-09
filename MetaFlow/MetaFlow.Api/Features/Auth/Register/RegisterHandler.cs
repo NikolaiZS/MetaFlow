@@ -1,9 +1,10 @@
-﻿using MediatR;
+using MediatR;
 using MetaFlow.Api.Common.Abstractions;
 using MetaFlow.Contracts.Users;
 using MetaFlow.Domain.Entities;
 using MetaFlow.Domain.Models;
 using MetaFlow.Infrastructure.Services;
+using MetaFlow.Infrastructure.Services.Cache;
 
 namespace MetaFlow.Api.Features.Auth.Register;
 
@@ -12,15 +13,18 @@ public class RegisterHandler : IRequestHandler<RegisterCommand, Result<AuthRespo
     private readonly SupabaseService _supabaseService;
     private readonly PasswordHasher _passwordHasher;
     private readonly JwtService _jwtService;
+    private readonly ICacheService _cache;
 
     public RegisterHandler(
         SupabaseService supabaseService,
         PasswordHasher passwordHasher,
-        JwtService jwtService)
+        JwtService jwtService,
+        ICacheService cache)
     {
         _supabaseService = supabaseService;
         _passwordHasher = passwordHasher;
         _jwtService = jwtService;
+        _cache = cache;
     }
 
     public async Task<Result<AuthResponse>> Handle(
@@ -32,6 +36,21 @@ public class RegisterHandler : IRequestHandler<RegisterCommand, Result<AuthRespo
         var emailLower = request.Email.ToLower();
         var usernameLower = request.Username.ToLower();
 
+        var emailExistsKey = $"auth:email-exists:{emailLower}";
+        var usernameExistsKey = $"auth:username-exists:{usernameLower}";
+
+        var cachedEmailExists = await _cache.GetAsync<bool?>(emailExistsKey, cancellationToken);
+        if (cachedEmailExists is true)
+        {
+            return Result.Failure<AuthResponse>("Email is already taken");
+        }
+
+        var cachedUsernameExists = await _cache.GetAsync<bool?>(usernameExistsKey, cancellationToken);
+        if (cachedUsernameExists is true)
+        {
+            return Result.Failure<AuthResponse>("Username is already taken");
+        }
+
         var emailCheck = await client
             .From<User>()
             .Select("id")
@@ -40,6 +59,7 @@ public class RegisterHandler : IRequestHandler<RegisterCommand, Result<AuthRespo
 
         if (emailCheck.Models.Count > 0)
         {
+            await _cache.SetAsync(emailExistsKey, true, TimeSpan.FromMinutes(10), cancellationToken);
             return Result.Failure<AuthResponse>("Email is already taken");
         }
 
@@ -51,6 +71,7 @@ public class RegisterHandler : IRequestHandler<RegisterCommand, Result<AuthRespo
 
         if (usernameCheck.Models.Count > 0)
         {
+            await _cache.SetAsync(usernameExistsKey, true, TimeSpan.FromMinutes(10), cancellationToken);
             return Result.Failure<AuthResponse>("Username is already taken");
         }
 
@@ -87,6 +108,25 @@ public class RegisterHandler : IRequestHandler<RegisterCommand, Result<AuthRespo
         {
             return Result.Failure<AuthResponse>("Failed to create user");
         }
+
+        // Cache uniqueness flags and user lookup by identifier for faster auth flows
+        await _cache.SetAsync(emailExistsKey, true, TimeSpan.FromMinutes(10), cancellationToken);
+        await _cache.SetAsync(usernameExistsKey, true, TimeSpan.FromMinutes(10), cancellationToken);
+
+        var cachedUser = new CachedAuthUser(
+            createdUser.Id,
+            createdUser.Email,
+            createdUser.Username,
+            createdUser.FullName,
+            createdUser.AvatarUrl,
+            createdUser.PasswordHash,
+            createdUser.EmailVerified,
+            createdUser.LastLoginAt,
+            createdUser.CreatedAt,
+            createdUser.UpdatedAt);
+
+        await _cache.SetAsync($"auth:user:{emailLower}", cachedUser, TimeSpan.FromMinutes(10), cancellationToken);
+        await _cache.SetAsync($"auth:user:{usernameLower}", cachedUser, TimeSpan.FromMinutes(10), cancellationToken);
 
         var token = _jwtService.GenerateToken(createdUser.Id, createdUser.Email, createdUser.Username);
         var expiresAt = DateTime.UtcNow.AddMinutes(1440);

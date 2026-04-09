@@ -1,9 +1,10 @@
-﻿using Carter;
+using Carter;
 using MediatR;
 using MetaFlow.Api.Features.Attachments.DeleteAttachment;
 using MetaFlow.Api.Features.Attachments.GetAttachments;
 using MetaFlow.Api.Features.Attachments.UploadAttachment;
 using MetaFlow.Contracts.Attachments;
+using MetaFlow.Infrastructure.Services;
 using System.Security.Claims;
 
 namespace MetaFlow.Api.Features.Attachments;
@@ -16,7 +17,7 @@ public class AttachmentsModule : ICarterModule
             .WithTags("Attachments")
             .RequireAuthorization();
 
-        // Upload Attachment
+        // Upload Attachment via URL (legacy)
         group.MapPost("", async (
             Guid cardId,
             UploadAttachmentRequest request,
@@ -46,6 +47,62 @@ public class AttachmentsModule : ICarterModule
                 : Results.BadRequest(new { error = result.Error });
         })
         .WithName("UploadAttachment")
+        .Produces<AttachmentResponse>(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status400BadRequest);
+
+        // Upload Attachment file to Supabase Storage
+        group.MapPost("file", async (
+            Guid cardId,
+            IFormFile file,
+            ClaimsPrincipal user,
+            ISender sender,
+            SupabaseService supabaseService,
+            IConfiguration configuration,
+            CancellationToken cancellationToken) =>
+        {
+            var userIdClaim = user.FindFirst("userId")?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                return Results.Unauthorized();
+            }
+
+            if (file == null || file.Length == 0)
+            {
+                return Results.BadRequest(new { error = "File is required" });
+            }
+
+            var bucketName = configuration["SupabaseStorage:AttachmentsBucket"] ?? "files-bucket";
+            var safeFileName = Path.GetFileName(file.FileName);
+            var objectPath = $"cards/{cardId}/{Guid.NewGuid()}_{safeFileName}";
+
+            await using var stream = file.OpenReadStream();
+
+            var fileUrl = await supabaseService.UploadFileToBucketAsync(
+                bucketName,
+                objectPath,
+                stream,
+                file.ContentType ?? "application/octet-stream",
+                cancellationToken);
+
+            var command = new UploadAttachmentCommand(
+                cardId,
+                safeFileName,
+                fileUrl,
+                file.Length,
+                file.ContentType ?? "application/octet-stream",
+                null,
+                userId
+            );
+
+            var result = await sender.Send(command);
+
+            return result.IsSuccess
+                ? Results.Ok(result.Value)
+                : Results.BadRequest(new { error = result.Error });
+        })
+        .DisableAntiforgery()
+        .WithName("UploadAttachmentFile")
+        .Accepts<IFormFile>("multipart/form-data")
         .Produces<AttachmentResponse>(StatusCodes.Status200OK)
         .Produces(StatusCodes.Status400BadRequest);
 

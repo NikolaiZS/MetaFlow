@@ -1,18 +1,21 @@
-﻿using MediatR;
+using MediatR;
 using MetaFlow.Api.Common.Abstractions;
 using MetaFlow.Contracts.Cards;
 using MetaFlow.Domain.Entities;
 using MetaFlow.Infrastructure.Services;
+using MetaFlow.Infrastructure.Services.Cache;
 
 namespace MetaFlow.Api.Features.Cards.GetCards
 {
     public class GetCardsHandler : IRequestHandler<GetCardsQuery, Result<List<CardListResponse>>>
     {
         private readonly SupabaseService _supabaseService;
+        private readonly ICacheService _cache;
 
-        public GetCardsHandler(SupabaseService supabaseService)
+        public GetCardsHandler(SupabaseService supabaseService, ICacheService cache)
         {
             _supabaseService = supabaseService;
+            _cache = cache;
         }
 
         public async Task<Result<List<CardListResponse>>> Handle(
@@ -37,9 +40,18 @@ namespace MetaFlow.Api.Features.Cards.GetCards
                 return Result.Failure<List<CardListResponse>>("Access denied");
             }
 
+            var columnPart = request.ColumnId.HasValue ? request.ColumnId.Value.ToString() : "all";
+            var cacheKey = $"cards:{request.BoardId}:col:{columnPart}:arch:{request.IncludeArchived}";
+
+            var cached = await _cache.GetAsync<List<CardListResponse>>(cacheKey, cancellationToken);
+            if (cached is not null)
+            {
+                return Result.Success(cached);
+            }
+
             var cardsQuery = client
                 .From<Card>()
-                .Select("id,title,priority,status,due_date,assigned_to_id,updated_at,column_id")
+                .Select("id,title,priority,status,due_date,assigned_to_id,updated_at,column_id,position,description,is_archived")
                 .Filter("board_id", Supabase.Postgrest.Constants.Operator.Equals, request.BoardId.ToString());
 
             if (request.ColumnId.HasValue)
@@ -60,7 +72,9 @@ namespace MetaFlow.Api.Features.Cards.GetCards
 
             if (cards.Count == 0)
             {
-                return Result.Success(new List<CardListResponse>());
+                var empty = new List<CardListResponse>();
+                await _cache.SetAsync(cacheKey, empty, TimeSpan.FromMinutes(5), cancellationToken);
+                return Result.Success(empty);
             }
 
             var assignedUserIds = cards
@@ -106,6 +120,9 @@ namespace MetaFlow.Api.Features.Cards.GetCards
             var response = cards.Select(c => new CardListResponse(
                 c.Id,
                 c.Title,
+                c.Description,
+                c.ColumnId,
+                c.Position,
                 c.Priority,
                 c.Status,
                 c.DueDate,
@@ -113,8 +130,11 @@ namespace MetaFlow.Api.Features.Cards.GetCards
                 c.AssignedToId.HasValue ? assignedUsers.GetValueOrDefault(c.AssignedToId.Value) : null,
                 cardCounts.GetValueOrDefault(c.Id).comments,
                 cardCounts.GetValueOrDefault(c.Id).attachments,
-                c.UpdatedAt
+                c.UpdatedAt,
+                c.IsArchived
             )).ToList();
+
+            await _cache.SetAsync(cacheKey, response, TimeSpan.FromMinutes(5), cancellationToken);
 
             return Result.Success(response);
         }
